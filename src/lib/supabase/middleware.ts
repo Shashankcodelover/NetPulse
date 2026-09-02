@@ -41,10 +41,16 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: DO NOT remove this. Refreshes the auth token.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Safely attempt to refresh session without crashing edge runtime
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data?.user) {
+      user = data.user;
+    }
+  } catch {
+    user = null;
+  }
 
   // Define public routes that don't require auth
   const publicRoutes = ['/auth/login', '/auth/signup', '/auth/callback'];
