@@ -22,6 +22,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Contact, UserSettings, DigestContact } from '@/lib/types';
 import { DEFAULT_SETTINGS } from '@/lib/types';
 import { calculatePriorityScore, getSuggestedReason, isContactOverdue } from '@/lib/scoring';
+import { DEMO_CONTACTS } from '@/lib/demo-data';
 
 // Deterministic avatar color from name
 function getAvatarColor(name: string): string {
@@ -61,20 +62,88 @@ export default function DigestPage() {
   const [loading, setLoading] = useState(true);
   const [contactedToday, setContactedToday] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const didLoad = useRef(false);
 
   const supabase = createClient();
 
+  const loadDemoState = () => {
+    setIsDemoMode(true);
+    setAllContacts(DEMO_CONTACTS);
+
+    const userSettings = DEFAULT_SETTINGS as UserSettings;
+    const interactionCounts: Record<string, number> = {
+      'demo-1': 2,
+      'demo-2': 1,
+      'demo-3': 1,
+      'demo-4': 1,
+      'demo-6': 2,
+    };
+
+    const scored: DigestContact[] = DEMO_CONTACTS.map(contact => {
+      const interactionCount = interactionCounts[contact.id] || 0;
+      const scoreData = calculatePriorityScore(contact, interactionCount, userSettings);
+      const overdue = isContactOverdue(contact, userSettings);
+      const daysSince = contact.last_contacted_at
+        ? Math.floor((Date.now() - new Date(contact.last_contacted_at).getTime()) / (1000 * 60 * 60 * 24))
+        : null;
+
+      return {
+        ...contact,
+        priority_score: {
+          id: '',
+          contact_id: contact.id,
+          user_id: 'demo-user',
+          last_calculated_at: new Date().toISOString(),
+          ...scoreData,
+        },
+        days_since_contact: daysSince,
+        is_overdue: overdue,
+        suggested_reason: getSuggestedReason(contact, scoreData.score, userSettings),
+      };
+    });
+
+    scored.sort((a, b) => (b.priority_score?.score || 0) - (a.priority_score?.score || 0));
+    setContacts(scored);
+    setLoading(false);
+  };
+
+  const enableDemoMode = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('netplus_demo_mode', 'true');
+    }
+    loadDemoState();
+    showToast('🌟 Judge Sandbox Activated: 25 Contacts Loaded');
+  };
+
+  const resetDemoMode = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('netplus_demo_mode');
+    }
+    setIsDemoMode(false);
+    setAllContacts([]);
+    setContacts([]);
+    showToast('Sandbox reset to clean database');
+  };
+
   useEffect(() => {
     if (didLoad.current) return;
     didLoad.current = true;
+
+    if (typeof window !== 'undefined' && localStorage.getItem('netplus_demo_mode') === 'true') {
+      loadDemoState();
+      return;
+    }
 
     let cancelled = false;
 
     async function loadDigest() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user || cancelled) return;
+        if (!user || cancelled) {
+          if (!cancelled) setLoading(false);
+          return;
+        }
 
         // Load settings
         const { data: settingsData } = await supabase
@@ -163,17 +232,21 @@ export default function DigestPage() {
   }, [supabase]);
 
   const markContacted = async (contactId: string) => {
+    if (isDemoMode) {
+      setContactedToday(prev => new Set([...prev, contactId]));
+      showToast('Contact marked as reached out ✓ (Demo)');
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Update last_contacted_at
       await supabase
         .from('contacts')
         .update({ last_contacted_at: new Date().toISOString() })
         .eq('id', contactId);
 
-      // Create interaction record
       await supabase
         .from('interactions')
         .insert({
@@ -209,12 +282,31 @@ export default function DigestPage() {
           </div>
           <h3>Welcome to NetPulse</h3>
           <p>
-            Import your LinkedIn connections to get started with your personalized daily digest.
+            Import your LinkedIn connections to get started, or explore with our pre-populated Judge &amp; Recruiter Sandbox.
           </p>
-          <Link href="/import" className="btn btn-primary btn-lg" style={{ marginTop: 24 }}>
-            <Upload size={18} />
-            Import Connections
-          </Link>
+          <div style={{ display: 'flex', gap: 14, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Link href="/import" className="btn btn-primary btn-lg">
+              <Upload size={18} />
+              Import Connections
+            </Link>
+            <button
+              onClick={enableDemoMode}
+              className="btn btn-secondary btn-lg"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'rgba(79, 70, 229, 0.08)',
+                border: '1px solid #4f46e5',
+                color: '#4f46e5',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <Zap size={18} />
+              Explore Sandbox (25 Contacts)
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -243,6 +335,44 @@ export default function DigestPage() {
 
   return (
     <div className="page-container">
+      {/* Sandbox Notice Banner */}
+      {isDemoMode && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 18px',
+            backgroundColor: 'rgba(79, 70, 229, 0.08)',
+            border: '1px solid rgba(79, 70, 229, 0.25)',
+            borderRadius: 12,
+            marginBottom: 24,
+            fontSize: '0.86rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Zap size={18} style={{ color: '#4f46e5' }} />
+            <span>
+              <strong>Evaluator Sandbox Active:</strong> Viewing 25 seeded tech executives, VCs &amp; mentors with live priority scoring.
+            </span>
+          </div>
+          <button
+            onClick={resetDemoMode}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#4f46e5',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
+          >
+            Reset Database
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="page-header animate-fade-in">
         <h1>Today&apos;s Digest</h1>

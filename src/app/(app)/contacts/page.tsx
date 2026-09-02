@@ -19,6 +19,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import type { Contact, RelationshipTier } from '@/lib/types';
+import { DEMO_CONTACTS } from '@/lib/demo-data';
 
 function getAvatarColor(name: string): string {
   const colors = [
@@ -51,17 +52,49 @@ export default function ContactsPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (typeof window !== 'undefined' && localStorage.getItem('netplus_demo_mode') === 'true') {
+        setContacts(DEMO_CONTACTS);
+        setLoading(false);
+        return;
+      }
 
-      const { data } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('full_name');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          // If unauthenticated or sandbox requested
+          if (typeof window !== 'undefined' && localStorage.getItem('netplus_demo_mode') === 'true') {
+            setContacts(DEMO_CONTACTS);
+          } else {
+            setContacts([]);
+          }
+          setLoading(false);
+          return;
+        }
 
-      setContacts(data || []);
-      setLoading(false);
+        const { data } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('full_name');
+
+        if (!data || data.length === 0) {
+          if (typeof window !== 'undefined' && localStorage.getItem('netplus_demo_mode') === 'true') {
+            setContacts(DEMO_CONTACTS);
+          } else {
+            setContacts([]);
+          }
+        } else {
+          setContacts(data);
+        }
+      } catch {
+        if (typeof window !== 'undefined' && localStorage.getItem('netplus_demo_mode') === 'true') {
+          setContacts(DEMO_CONTACTS);
+        } else {
+          setContacts([]);
+        }
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [supabase]);
