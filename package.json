@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "npx tsx --test tests/scoring.test.ts tests/csv-parser.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

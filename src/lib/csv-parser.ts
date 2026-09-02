@@ -8,10 +8,24 @@ import type { Contact, ImportError, LinkedInCSVRow } from '@/lib/types';
 
 // LinkedIn CSV has these columns (may vary slightly by export date):
 // First Name, Last Name, URL, Email Address, Company, Position, Connected On
+// Known column aliases mapping for LinkedIn CSV variations
+function normalizeHeader(header: string): string {
+  const trimmed = header.trim();
+  const lower = trimmed.toLowerCase();
+  if (/^first(\s*|_)?name$/i.test(lower) || lower === 'firstname') return 'First Name';
+  if (/^last(\s*|_)?name$/i.test(lower) || lower === 'lastname') return 'Last Name';
+  if (/^email(\s*|_)?(address)?$/i.test(lower)) return 'Email Address';
+  if (/^(company(\s*|_)?(name)?|organization)$/i.test(lower)) return 'Company';
+  if (/^(position|title|job(\s*|_)?title|role)$/i.test(lower)) return 'Position';
+  if (/^connected(\s*|_)?(on|date)?$/i.test(lower)) return 'Connected On';
+  if (/^(url|linkedin(\s*|_)?(url|profile)?|profile(\s*|_)?url|link)$/i.test(lower)) return 'URL';
+  return trimmed;
+}
+
 const LinkedInRowSchema = z.object({
-  'First Name': z.string().min(1, 'First name is required'),
-  'Last Name': z.string().min(1, 'Last name is required'),
-  'Email Address': z.string().email().optional().or(z.literal('')),
+  'First Name': z.string().optional().or(z.literal('')),
+  'Last Name': z.string().optional().or(z.literal('')),
+  'Email Address': z.string().optional().or(z.literal('')),
   'Company': z.string().optional().or(z.literal('')),
   'Position': z.string().optional().or(z.literal('')),
   'Connected On': z.string().optional().or(z.literal('')),
@@ -35,41 +49,33 @@ export function parseLinkedInCSV(file: File): Promise<{
   errors: ImportError[];
 }> {
   return new Promise((resolve, reject) => {
-    Papa.parse<LinkedInCSVRow>(file, {
+    Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: (header: string) => header.trim(),
+      transformHeader: normalizeHeader,
       complete: (results) => {
         const contacts: ParsedContact[] = [];
         const errors: ImportError[] = [];
 
         results.data.forEach((row, index) => {
           try {
-            // Skip the "notes" row that LinkedIn sometimes adds at the top
-            const firstName = row['First Name']?.trim();
-            const lastName = row['Last Name']?.trim();
-
-            if (!firstName && !lastName) {
-              return; // Skip empty rows silently
-            }
-
-            const validation = LinkedInRowSchema.safeParse(row);
-
-            if (!validation.success) {
-              errors.push({
-                row: index + 2, // +2 for header row + 0-index
-                name: `${firstName || ''} ${lastName || ''}`.trim(),
-                message: validation.error.issues.map(i => i.message).join('; '),
-              });
-              return;
-            }
-
+            const firstName = row['First Name']?.trim() || '';
+            const lastName = row['Last Name']?.trim() || '';
             const fullName = `${firstName} ${lastName}`.trim();
-            if (!fullName) return;
+
+            if (!fullName) {
+              return; // Skip completely empty rows
+            }
+
+            const rawEmail = row['Email Address']?.trim() || null;
+            let email: string | null = null;
+            if (rawEmail && z.string().email().safeParse(rawEmail).success) {
+              email = rawEmail;
+            }
 
             contacts.push({
               full_name: fullName,
-              email: row['Email Address']?.trim() || null,
+              email,
               company: row['Company']?.trim() || null,
               title: row['Position']?.trim() || null,
               linkedin_url: row['URL']?.trim() || null,

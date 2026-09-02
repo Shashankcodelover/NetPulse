@@ -42,6 +42,8 @@ function calculateRecencyScore(
 
   const daysSince = differenceInDays(new Date(), new Date(lastContactedAt));
 
+  if (daysSince < 0) return 0; // Future scheduled contact — not overdue
+
   // Get the target cadence for this tier
   let targetDays: number;
   switch (tier) {
@@ -142,14 +144,16 @@ export function calculatePriorityScore(
   interactionCount: number,
   settings: UserSettings
 ): Omit<PriorityScore, 'id' | 'contact_id' | 'user_id' | 'last_calculated_at'> {
-  const weights = settings.scoring_weights;
+  const weights = settings?.scoring_weights || { recency_weight: 35, tier_weight: 25, title_weight: 20, engagement_weight: 20 };
+  const targetTitles = settings?.target_titles || [];
+  const targetCompanies = settings?.target_companies || [];
   const totalWeight = weights.recency_weight + weights.tier_weight +
     weights.title_weight + weights.engagement_weight;
 
   // Calculate each sub-score
   const recency = calculateRecencyScore(contact.last_contacted_at, contact.relationship_tier, settings);
   const tier = calculateTierScore(contact.relationship_tier);
-  const title = calculateTitleScore(contact.title, settings.target_titles);
+  const title = calculateTitleScore(contact.title, targetTitles);
   const engagement = calculateEngagementScore(interactionCount);
 
   // Weighted average
@@ -161,7 +165,7 @@ export function calculatePriorityScore(
   ) / (totalWeight || 1);
 
   // Company bonus (adds up to 15 points)
-  rawScore += getCompanyBonus(contact.company, settings.target_companies);
+  rawScore += getCompanyBonus(contact.company, targetCompanies);
 
   // Clamp to 0-100
   const score = Math.round(Math.min(100, Math.max(0, rawScore)));

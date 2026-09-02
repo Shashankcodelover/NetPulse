@@ -10,6 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("http://shashankj.tech"),
   title: "NetPulse — Never let a good connection go cold",
   description:
     "Turn your LinkedIn and WhatsApp connections into a prioritized, trackable pipeline. Like a CRM, but for your personal network.",
