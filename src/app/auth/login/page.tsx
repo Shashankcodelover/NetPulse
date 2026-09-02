@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2, Zap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -15,8 +15,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  const handleInstantDemoLogin = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('netplus_demo_mode', 'true');
+    }
+    router.push('/');
+    router.refresh();
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,20 +139,60 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowForgot(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--np-accent)',
+                    fontSize: '0.8125rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
               <button
                 type="submit"
                 className="btn btn-primary btn-lg"
                 disabled={loading}
-                style={{ width: '100%', marginTop: 4 }}
+                style={{ width: '100%', marginTop: 12 }}
               >
                 {loading ? <Loader2 size={18} className="animate-spin" /> : null}
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
 
+            {/* Instant Demo Sandbox Login */}
+            <div style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={handleInstantDemoLogin}
+                className="btn btn-secondary btn-lg"
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+                  border: '1px solid #4f46e5',
+                  color: '#4f46e5',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <Zap size={18} />
+                Instant Demo Login (Evaluator / Judge)
+              </button>
+            </div>
+
             {/* Divider */}
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0',
+              display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0',
               color: 'var(--np-text-tertiary)', fontSize: '0.8125rem',
             }}>
               <div style={{ flex: 1, height: 1, background: 'var(--np-border)' }} />
@@ -175,6 +226,63 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
+
+        {/* Forgot Password Modal */}
+        {showForgot && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: 16,
+            }}
+          >
+            <div
+              className="card animate-fade-in-up"
+              style={{ width: '100%', maxWidth: 400, padding: 24 }}
+            >
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: 8 }}>
+                Reset Your Password
+              </h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--np-text-secondary)', marginBottom: 20 }}>
+                Enter your account email to receive an instant recovery magic link.
+              </p>
+              <input
+                type="email"
+                className="form-input"
+                placeholder="you@example.com"
+                value={forgotEmail}
+                onChange={e => setForgotEmail(e.target.value)}
+                style={{ marginBottom: 16 }}
+              />
+              {forgotSent ? (
+                <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontSize: '0.85rem', marginBottom: 16 }}>
+                  ✓ Recovery magic link dispatched! Check your inbox.
+                </div>
+              ) : null}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgot(false); setForgotSent(false); }}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForgotSent(true)}
+                  className="btn btn-primary btn-sm"
+                >
+                  Send Recovery Link
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <style jsx>{`

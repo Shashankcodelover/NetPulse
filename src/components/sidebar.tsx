@@ -18,13 +18,16 @@ import {
   Menu,
   X,
   LogOut,
+  Kanban,
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { NotificationBell } from '@/components/notification-bell';
 
 const navItems = [
   { href: '/', label: 'Digest', icon: Zap },
+  { href: '/pipeline', label: 'Pipeline', icon: Kanban },
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/import', label: 'Import', icon: Upload },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
@@ -52,20 +55,25 @@ export function Sidebar() {
     <>
       {/* Mobile Header */}
       <div className="mobile-header">
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="btn-ghost"
-          style={{ padding: 8 }}
-          aria-label="Open navigation"
-        >
-          <Menu size={20} />
-        </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className="logo-dot" style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: 'var(--np-accent)', boxShadow: '0 0 8px var(--np-accent)'
-          }} />
-          <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>NetPulse</span>
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="btn-ghost"
+            style={{ padding: 8 }}
+            aria-label="Open navigation"
+          >
+            <Menu size={20} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="logo-dot" style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: 'var(--np-accent)', boxShadow: '0 0 8px var(--np-accent)'
+            }} />
+            <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>NetPulse</span>
+          </div>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <NotificationBell />
         </div>
       </div>
 
@@ -93,9 +101,12 @@ export function Sidebar() {
         </div>
 
         {/* Logo */}
-        <div className="sidebar-logo">
-          <div className="logo-dot" />
-          <h1>NetPulse</h1>
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="logo-dot" />
+            <h1>NetPulse</h1>
+          </div>
+          <NotificationBell />
         </div>
 
         {/* Navigation */}
