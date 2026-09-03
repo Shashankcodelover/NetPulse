@@ -3,10 +3,10 @@
 // ═══════════════════════════════════════════════════════
 // Daily Digest — Home Page
 // "10-15 people to reach out to today"
-// Integrated with NetPulseStore IndexedDB & Time-Travel Decay Simulator
+// Integrated with NetPulseStore IndexedDB, Snooze & Filter Tabs
 // ═══════════════════════════════════════════════════════
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import {
   Zap,
@@ -15,18 +15,17 @@ import {
   AlertCircle,
   Building2,
   Briefcase,
-  Upload,
-  ChevronRight,
   Calendar,
   RotateCcw,
   AlertTriangle,
+  Moon,
+  Sparkles,
+  Sliders,
 } from 'lucide-react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import type { Contact, UserSettings, DigestContact } from '@/lib/types';
 import { DEFAULT_SETTINGS } from '@/lib/types';
 import { calculatePriorityScore, getSuggestedReason, isContactOverdue } from '@/lib/scoring';
-import { DEMO_CONTACTS } from '@/lib/demo-data';
 import { netPulseStore } from '@/lib/storage/db';
 import { generateGoogleCalendarUrl } from '@/lib/calendar';
 
@@ -47,12 +46,6 @@ function getInitials(name: string): string {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-function getScoreClass(score: number): string {
-  if (score >= 70) return 'score-high';
-  if (score >= 40) return 'score-medium';
-  return 'score-low';
-}
-
 function getTierBadgeClass(tier: string): string {
   switch (tier) {
     case 'priority': return 'badge-priority';
@@ -64,21 +57,18 @@ function getTierBadgeClass(tier: string): string {
 
 export default function DigestPage() {
   const [contacts, setContacts] = useState<DigestContact[]>([]);
-  const [allContacts, setAllContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [contactedToday, setContactedToday] = useState<Set<string>>(new Set());
+  const [snoozedIds, setSnoozedIds] = useState<Set<string>>(new Set());
+  const [digestFilter, setDigestFilter] = useState<'all' | 'priority' | 'overdue'>('all');
   const [toast, setToast] = useState<string | null>(null);
   const [decayOffsetDays, setDecayOffsetDays] = useState<number>(0);
-  const [isDemoMode, setIsDemoMode] = useState(true);
-
-  const supabase = createClient();
 
   const loadData = async () => {
     setLoading(true);
     const rawContacts = await netPulseStore.getContacts();
     const offset = await netPulseStore.getDecayOffsetDays();
     setDecayOffsetDays(offset);
-    setAllContacts(rawContacts);
 
     const userSettings = DEFAULT_SETTINGS as UserSettings;
     const simulatedNow = Date.now() + offset * 24 * 60 * 60 * 1000;
@@ -121,8 +111,13 @@ export default function DigestPage() {
   const markContacted = async (contactId: string) => {
     await netPulseStore.markContacted(contactId);
     setContactedToday(prev => new Set([...prev, contactId]));
-    showToast('Logged interaction & updated IndexedDB write-ahead buffer!');
+    showToast('Logged interaction & updated urgency clock to today!');
     await loadData();
+  };
+
+  const snoozeContact = (id: string, name: string) => {
+    setSnoozedIds(prev => new Set([...prev, id]));
+    showToast(`Snoozed ${name} for 7 days.`);
   };
 
   const handleResetDecay = async () => {
@@ -134,7 +129,7 @@ export default function DigestPage() {
 
   const showToast = (message: string) => {
     setToast(message);
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3200);
   };
 
   const today = format(new Date(), 'EEEE, MMMM d, yyyy');
@@ -142,9 +137,16 @@ export default function DigestPage() {
   const overdueCount = contacts.filter(c => c.is_overdue).length;
   const priorityCount = contacts.filter(c => c.relationship_tier === 'priority').length;
 
+  const visibleContacts = contacts.filter(c => {
+    if (snoozedIds.has(c.id)) return false;
+    if (digestFilter === 'priority') return c.relationship_tier === 'priority';
+    if (digestFilter === 'overdue') return c.is_overdue;
+    return true;
+  });
+
   if (loading) {
     return (
-      <div className="page-container">
+      <div className="page-container" style={{ maxWidth: 1100 }}>
         <div className="skeleton" style={{ height: 36, width: 240, marginBottom: 8 }} />
         <div className="skeleton" style={{ height: 20, width: 160, marginBottom: 28 }} />
         <div className="skeleton" style={{ height: 160, borderRadius: 16, marginBottom: 28 }} />
@@ -158,7 +160,7 @@ export default function DigestPage() {
   }
 
   return (
-    <div className="page-container" style={{ maxWidth: 1200 }}>
+    <div className="page-container" style={{ maxWidth: 1100 }}>
       {/* Simulation Banner */}
       {decayOffsetDays > 0 && (
         <div
@@ -254,140 +256,188 @@ export default function DigestPage() {
         </div>
       </div>
 
+      {/* Filter Tabs Strip */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={() => setDigestFilter('all')}
+            className={`btn btn-sm ${digestFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ fontSize: '0.8rem', fontWeight: digestFilter === 'all' ? 700 : 500 }}
+          >
+            All Attention ({contacts.length})
+          </button>
+          <button
+            onClick={() => setDigestFilter('priority')}
+            className={`btn btn-sm ${digestFilter === 'priority' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ fontSize: '0.8rem', fontWeight: digestFilter === 'priority' ? 700 : 500 }}
+          >
+            Priority Tier ({priorityCount})
+          </button>
+          <button
+            onClick={() => setDigestFilter('overdue')}
+            className={`btn btn-sm ${digestFilter === 'overdue' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ fontSize: '0.8rem', fontWeight: digestFilter === 'overdue' ? 700 : 500 }}
+          >
+            SLA Overdue ({overdueCount})
+          </button>
+        </div>
+
+        {snoozedIds.size > 0 && (
+          <button
+            onClick={() => { setSnoozedIds(new Set()); showToast('Restored all snoozed contacts to digest.'); }}
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: '0.74rem', color: 'var(--np-text-tertiary)' }}
+          >
+            Clear {snoozedIds.size} Snoozed
+          </button>
+        )}
+      </div>
+
       {/* Contacts List */}
       <div className="contacts-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {contacts.map((contact, index) => {
-          const isCompleted = contactedToday.has(contact.id);
-          const score = contact.priority_score?.score ?? 0;
+        {visibleContacts.length === 0 ? (
+          <div className="card animate-fade-in-up" style={{ padding: 40, textAlign: 'center', borderRadius: 14 }}>
+            <CheckCircle2 size={36} style={{ margin: '0 auto 12px auto', color: '#10b981' }} />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 6px 0' }}>You&apos;re all caught up!</h3>
+            <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.88rem', margin: 0 }}>
+              Zero connections in this view require immediate attention.
+            </p>
+          </div>
+        ) : (
+          visibleContacts.map((contact) => {
+            const isCompleted = contactedToday.has(contact.id);
+            const score = contact.priority_score?.score ?? 0;
 
-          return (
-            <div
-              key={contact.id}
-              className={`contact-card ${isCompleted ? 'contact-card-completed' : ''} animate-fade-in`}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 18px',
-                borderRadius: 12,
-                backgroundColor: 'var(--np-bg-card)',
-                border: '1px solid var(--np-border)',
-                transition: 'all 0.2s',
-              }}
-            >
-              {/* Left: Avatar + Score Ring */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    backgroundColor: getAvatarColor(contact.full_name),
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    flexShrink: 0,
-                  }}
-                >
-                  {getInitials(contact.full_name)}
-                </div>
-
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Link
-                      href={`/contacts/${contact.id}`}
-                      style={{
-                        fontSize: '0.92rem',
-                        fontWeight: 700,
-                        color: 'var(--np-text-primary)',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      {contact.full_name}
-                    </Link>
-                    <span className={`badge ${getTierBadgeClass(contact.relationship_tier)}`} style={{ fontSize: '0.65rem' }}>
-                      {contact.relationship_tier}
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: '0.78rem', color: 'var(--np-text-secondary)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Building2 size={13} color="var(--np-text-tertiary)" />
-                    <span>{contact.title} &bull; {contact.company}</span>
-                  </div>
-
-                  <div style={{ fontSize: '0.74rem', color: contact.is_overdue ? '#ef4444' : 'var(--np-text-tertiary)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {contact.is_overdue ? <AlertCircle size={12} /> : <Clock size={12} />}
-                    <span>{contact.suggested_reason}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: Score Ring + Actions */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {/* Score Indicator */}
-                <div style={{ textAlign: 'right', marginRight: 6 }}>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: score >= 80 ? '#ef4444' : score >= 60 ? '#f59e0b' : '#10b981' }}>
-                    {score}
-                  </div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--np-text-tertiary)' }}>Decay Score</div>
-                </div>
-
-                {/* 1-Click Smart Calendar Action */}
-                <a
-                  href={generateGoogleCalendarUrl({
-                    contact,
-                    agendaTopic: `SLA Recovery Catch-up (${contact.relationship_tier.toUpperCase()} Tier)`,
-                  })}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', padding: '6px 12px' }}
-                  title="Schedule 1-Click Meeting"
-                >
-                  <Calendar size={13} /> Meet
-                </a>
-
-                {/* Mark Contacted Button */}
-                {!isCompleted ? (
-                  <button
-                    onClick={() => markContacted(contact.id)}
-                    className="btn btn-primary btn-sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', padding: '6px 12px' }}
+            return (
+              <div
+                key={contact.id}
+                className={`contact-card ${isCompleted ? 'contact-card-completed' : ''} animate-fade-in`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 18px',
+                  borderRadius: 12,
+                  backgroundColor: 'var(--np-bg-card)',
+                  border: '1px solid var(--np-border)',
+                  transition: 'all 0.2s',
+                  boxSizing: 'border-box',
+                  width: '100%',
+                }}
+              >
+                {/* Left: Avatar + Score Ring */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      backgroundColor: getAvatarColor(contact.full_name),
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
                   >
-                    <CheckCircle2 size={13} /> Done
-                  </button>
-                ) : (
-                  <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <CheckCircle2 size={14} /> Contacted
-                  </span>
-                )}
+                    {getInitials(contact.full_name)}
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <Link
+                        href={`/contacts/${contact.id}`}
+                        style={{
+                          fontSize: '0.92rem',
+                          fontWeight: 700,
+                          color: 'var(--np-text-primary)',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        {contact.full_name}
+                      </Link>
+                      <span className={`badge ${getTierBadgeClass(contact.relationship_tier)}`} style={{ fontSize: '0.65rem' }}>
+                        {contact.relationship_tier}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '0.78rem', color: 'var(--np-text-secondary)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Building2 size={13} color="var(--np-text-tertiary)" style={{ flexShrink: 0 }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.title} &bull; {contact.company}</span>
+                    </div>
+
+                    <div style={{ fontSize: '0.74rem', color: contact.is_overdue ? '#ef4444' : 'var(--np-text-tertiary)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {contact.is_overdue ? <AlertCircle size={12} /> : <Clock size={12} />}
+                      <span>{contact.suggested_reason}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Score Ring + Actions */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  {/* Score Indicator */}
+                  <div style={{ textAlign: 'right', marginRight: 4 }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: score >= 80 ? '#ef4444' : score >= 60 ? '#f59e0b' : '#10b981' }}>
+                      {score}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--np-text-tertiary)' }}>Decay Score</div>
+                  </div>
+
+                  {/* Snooze 7d Action per PRD */}
+                  {!isCompleted && (
+                    <button
+                      onClick={() => snoozeContact(contact.id, contact.full_name)}
+                      className="btn btn-ghost btn-sm"
+                      style={{ padding: '6px 10px', fontSize: '0.74rem', color: 'var(--np-text-tertiary)' }}
+                      title="Snooze for 7 days"
+                    >
+                      <Moon size={13} /> Snooze
+                    </button>
+                  )}
+
+                  {/* 1-Click Smart Calendar Action */}
+                  <a
+                    href={generateGoogleCalendarUrl({
+                      contact,
+                      agendaTopic: `SLA Recovery Catch-up (${contact.relationship_tier.toUpperCase()} Tier)`,
+                    })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', padding: '6px 12px' }}
+                    title="Schedule 1-Click Meeting"
+                  >
+                    <Calendar size={13} /> Meet
+                  </a>
+
+                  {/* Mark Contacted Button */}
+                  {!isCompleted ? (
+                    <button
+                      onClick={() => markContacted(contact.id)}
+                      className="btn btn-primary btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', padding: '6px 12px', fontWeight: 700 }}
+                    >
+                      <CheckCircle2 size={13} /> Done
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <CheckCircle2 size={14} /> Contacted
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Toast Notification */}
       {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            backgroundColor: '#0066ff',
-            color: 'white',
-            padding: '10px 18px',
-            borderRadius: 8,
-            fontSize: '0.84rem',
-            fontWeight: 600,
-            boxShadow: '0 10px 25px rgba(0, 102, 255, 0.4)',
-            zIndex: 1000,
-          }}
-        >
-          {toast}
+        <div className="toast animate-fade-in-up" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CheckCircle2 size={16} style={{ color: 'var(--np-success)' }} />
+          <span>{toast}</span>
         </div>
       )}
     </div>

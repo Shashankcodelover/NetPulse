@@ -129,6 +129,20 @@ export function PulseBot() {
       }
     } else if (action === 'open_sim') {
       window.dispatchEvent(new CustomEvent('netpulse:open-simulator'));
+    } else if (action === 'reset_sim') {
+      await netPulseStore.setDecayOffsetDays(0);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: String(Date.now()),
+          sender: 'bot',
+          text: '🔄 Horizon reset to baseline today.',
+          timestamp: 'Just now',
+          quickActions: [
+            { label: '📊 Audit Network Health', action: 'audit' },
+          ],
+        },
+      ]);
     }
   };
 
@@ -149,21 +163,89 @@ export function PulseBot() {
     if (!input.trim()) return;
 
     const userText = input.trim();
+    const lower = userText.toLowerCase();
     setInput('');
     addUserMessage(userText);
     setIsTyping(true);
 
+    // 1. Check for Simulation commands
+    if (lower.includes('simulate') || lower.includes('fast forward') || lower.includes('30 days') || lower.includes('+30d')) {
+      await netPulseStore.setDecayOffsetDays(30);
+      setIsTyping(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: String(Date.now()),
+          sender: 'bot',
+          text: '⏱️ Time-travel activated: Simulated +30 days of relationship decay across your entire network! Urgency scores recalculated and Cadence Watchdog alerting.',
+          timestamp: 'Just now',
+          quickActions: [
+            { label: '📊 Audit Network Health', action: 'audit' },
+            { label: '🔄 Reset to Baseline', action: 'reset_sim' },
+          ],
+        },
+      ]);
+      return;
+    }
+
+    if (lower.includes('reset') && (lower.includes('decay') || lower.includes('baseline') || lower.includes('horizon'))) {
+      await netPulseStore.setDecayOffsetDays(0);
+      setIsTyping(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: String(Date.now()),
+          sender: 'bot',
+          text: '🔄 Decay simulation reset to today\'s baseline calendar horizon. All scores normalized.',
+          timestamp: 'Just now',
+          quickActions: [
+            { label: '📊 Audit Network Health', action: 'audit' },
+          ],
+        },
+      ]);
+      return;
+    }
+
+    // 2. Check for Contact & Company Search
+    const allContacts = await netPulseStore.getContacts();
+    const matched = allContacts.filter(c =>
+      (c.company && lower.includes(c.company.toLowerCase())) ||
+      lower.includes(c.full_name.toLowerCase()) ||
+      (c.title && lower.includes(c.title.toLowerCase())) ||
+      (lower.includes('vc') && (c.title?.toLowerCase().includes('partner') || c.company?.toLowerCase().includes('capital') || c.company?.toLowerCase().includes('fund'))) ||
+      (lower.includes('founder') && c.title?.toLowerCase().includes('founder'))
+    );
+
+    if (matched.length > 0 && (lower.includes('who') || lower.includes('contact') || lower.includes('find') || lower.includes('show') || lower.includes('vc') || lower.includes('founder') || lower.includes('lead') || lower.includes('work') || lower.includes('at'))) {
+      setIsTyping(false);
+      const topMatch = matched[0];
+      setMessages(prev => [
+        ...prev,
+        {
+          id: String(Date.now()),
+          sender: 'bot',
+          text: `🔍 Found ${matched.length} key connection${matched.length > 1 ? 's' : ''} matching your inquiry:\n\n${matched.slice(0, 3).map((c, i) => `${i + 1}. ${c.full_name} — ${c.title || 'Leader'} at ${c.company || 'Enterprise'} (${c.relationship_tier.toUpperCase()} tier)`).join('\n')}\n\nWould you like me to draft a contextual outreach message or schedule a meeting?`,
+          timestamp: 'Just now',
+          quickActions: [
+            { label: `✍️ Draft Reconnect for ${topMatch.full_name.split(' ')[0]}`, action: `draft_${topMatch.id}` },
+            { label: '📊 Audit Network Health', action: 'audit' },
+          ],
+        },
+      ]);
+      return;
+    }
+
+    // 3. Fallback: Contextual AI Reconnect Synthesis
     try {
-      // Query draft-reply endpoint with full relationship prompt
       const res = await fetch('/api/ai/draft-reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceText: userText,
-          contactName: 'Strategic Partner',
-          contactCompany: 'Technology Leadership',
-          contactRole: 'Executive',
-          tier: 'priority',
+          contactName: matched[0]?.full_name || 'Strategic Partner',
+          contactCompany: matched[0]?.company || 'Technology Leadership',
+          contactRole: matched[0]?.title || 'Executive',
+          tier: matched[0]?.relationship_tier || 'priority',
         }),
       });
 
@@ -176,7 +258,7 @@ export function PulseBot() {
           {
             id: String(Date.now()),
             sender: 'bot',
-            text: `Analyzed your context ("${data.summary}"). Here are 3 personalized reconnect drafts:`,
+            text: `Analyzed your inquiry ("${data.summary}"). Here are 3 personalized reconnect drafts:`,
             timestamp: 'Just now',
             drafts: data.drafts.map((d: { label: string; text: string }) => ({ angle: d.label, text: d.text })),
             quickActions: [
@@ -191,10 +273,11 @@ export function PulseBot() {
           {
             id: String(Date.now()),
             sender: 'bot',
-            text: "I've noted that. Would you like me to audit contacts overdue for reconnect or generate a customized message?",
+            text: "I've analyzed your network. You can ask me to search specific connections (e.g., 'Who works at Stripe?'), audit network health, or draft personalized outreach.",
             timestamp: 'Just now',
             quickActions: [
               { label: '📊 Audit Network Health', action: 'audit' },
+              { label: '🎯 High-Value VCs & Tech Leads', action: 'vcs' },
             ],
           },
         ]);

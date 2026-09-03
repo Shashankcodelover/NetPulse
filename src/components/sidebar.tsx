@@ -73,7 +73,7 @@ export function Sidebar() {
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <NotificationBell />
+          <NotificationBell placement="header" />
         </div>
       </div>
 
@@ -106,7 +106,7 @@ export function Sidebar() {
             <div className="logo-dot" />
             <h1>NetPulse</h1>
           </div>
-          <NotificationBell />
+          <NotificationBell placement="sidebar" />
         </div>
 
         {/* Navigation */}
