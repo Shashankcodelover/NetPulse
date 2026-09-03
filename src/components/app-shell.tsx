@@ -9,6 +9,8 @@ import { Sidebar } from '@/components/sidebar';
 import { PulseBot } from '@/components/pulse-bot';
 import { SimulatorModal } from '@/components/simulator-modal';
 import { CommandPalette } from '@/components/command-palette';
+import { AudioTourBar } from '@/components/audio-tour-bar';
+import { ShortcutsModal } from '@/components/shortcuts-modal';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [simulatorOpen, setSimulatorOpen] = useState(false);
@@ -36,6 +38,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <PulseBot />
       <SimulatorModal isOpen={simulatorOpen} onClose={() => setSimulatorOpen(false)} />
       <CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
+      <AudioTourBar />
+      <ShortcutsModal />
     </div>
   );
 }
