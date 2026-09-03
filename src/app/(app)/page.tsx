@@ -32,6 +32,7 @@ import { calculatePriorityScore, getSuggestedReason, isContactOverdue } from '@/
 import { netPulseStore } from '@/lib/storage/db';
 import { generateGoogleCalendarUrl } from '@/lib/calendar';
 import { generateWhatsAppUrl } from '@/lib/whatsapp';
+import { NetworkHealthCard } from '@/components/network-health-card';
 
 // Deterministic avatar color from name
 function getAvatarColor(name: string): string {
@@ -235,10 +236,10 @@ export default function DigestPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
-              IMAGINE CUP STAGE 4/7
+              IMAGINE CUP STAGE 5/7
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
-              Strategic Triage &bull; Multi-Channel WhatsApp &bull; 10-Sec Enrichment
+              Command Palette (Ctrl+K) &bull; Job Change Radar &bull; Network Telemetry
             </span>
           </div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>Daily Digest</h1>
@@ -299,6 +300,9 @@ export default function DigestPage() {
           </div>
         </div>
       </div>
+
+      {/* Live SLA Compliance & Network Health Telemetry */}
+      <NetworkHealthCard />
 
       {/* Filter Tabs Strip */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>

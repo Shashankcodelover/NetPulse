@@ -20,6 +20,8 @@ import {
   LogOut,
   Kanban,
   Sparkles,
+  Compass,
+  Search,
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import { createClient } from '@/lib/supabase/client';
@@ -30,6 +32,7 @@ const navItems = [
   { href: '/', label: 'Digest', icon: Zap },
   { href: '/pipeline', label: 'Pipeline', icon: Kanban },
   { href: '/contacts', label: 'Contacts', icon: Users },
+  { href: '/radar', label: 'Radar', icon: Compass },
   { href: '/triage', label: 'Triage', icon: Sparkles },
   { href: '/import', label: 'Import', icon: Upload },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
@@ -109,6 +112,35 @@ export function Sidebar() {
             <h1>NetPulse</h1>
           </div>
           <NotificationBell placement="sidebar" />
+        </div>
+
+        {/* Omnibar / Command Palette Trigger */}
+        <div style={{ padding: '0 12px 12px' }}>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('netpulse:open-command-palette'))}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '7px 10px',
+              borderRadius: '8px',
+              backgroundColor: 'var(--np-bg-tertiary)',
+              border: '1px solid var(--np-border)',
+              color: 'var(--np-text-tertiary)',
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            title="Quick search or jump (Ctrl + K)"
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Search size={14} /> Search or jump...
+            </span>
+            <kbd style={{ fontSize: '0.64rem', padding: '1px 5px', borderRadius: 4, background: 'var(--np-bg-card)', border: '1px solid var(--np-border)', color: 'var(--np-text-secondary)', fontWeight: 700 }}>
+              Ctrl K
+            </kbd>
+          </button>
         </div>
 
         {/* Navigation */}

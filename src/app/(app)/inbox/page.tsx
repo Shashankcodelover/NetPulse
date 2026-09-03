@@ -26,11 +26,13 @@ import type { Contact } from '@/lib/types';
 function InboxContent() {
   const searchParams = useSearchParams();
   const contactIdParam = searchParams.get('contactId');
+  const nameParam = searchParams.get('name');
+  const contextParam = searchParams.get('context');
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string>('');
   const [tone, setTone] = useState<'executive' | 'peer' | 'investor'>('executive');
-  const [sourceText, setSourceText] = useState('');
+  const [sourceText, setSourceText] = useState(contextParam || '');
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [engineSource, setEngineSource] = useState<string | null>(null);
@@ -39,15 +41,24 @@ function InboxContent() {
   const [copiedDraftIdx, setCopiedDraftIdx] = useState<number | null>(null);
 
   useEffect(() => {
+    if (contextParam) {
+      setSourceText(contextParam);
+    }
+  }, [contextParam]);
+
+  useEffect(() => {
     netPulseStore.getContacts().then(list => {
       setContacts(list);
       if (contactIdParam && list.some(c => c.id === contactIdParam)) {
         setSelectedContactId(contactIdParam);
+      } else if (nameParam && list.some(c => c.full_name.toLowerCase().includes(nameParam.toLowerCase()))) {
+        const found = list.find(c => c.full_name.toLowerCase().includes(nameParam.toLowerCase()));
+        if (found) setSelectedContactId(found.id);
       } else if (list.length > 0) {
         setSelectedContactId(list[0].id);
       }
     });
-  }, [contactIdParam]);
+  }, [contactIdParam, nameParam]);
 
   const selectedContact = contacts.find(c => c.id === selectedContactId);
 
