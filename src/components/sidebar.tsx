@@ -22,6 +22,7 @@ import {
   Sparkles,
   Compass,
   Search,
+  Share2,
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import { createClient } from '@/lib/supabase/client';
@@ -31,6 +32,7 @@ import { NotificationBell } from '@/components/notification-bell';
 const navItems = [
   { href: '/', label: 'Digest', icon: Zap },
   { href: '/pipeline', label: 'Pipeline', icon: Kanban },
+  { href: '/graph', label: 'Graph', icon: Share2 },
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/radar', label: 'Radar', icon: Compass },
   { href: '/triage', label: 'Triage', icon: Sparkles },

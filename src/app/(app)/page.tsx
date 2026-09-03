@@ -33,6 +33,7 @@ import { netPulseStore } from '@/lib/storage/db';
 import { generateGoogleCalendarUrl } from '@/lib/calendar';
 import { generateWhatsAppUrl } from '@/lib/whatsapp';
 import { NetworkHealthCard } from '@/components/network-health-card';
+import { SpeedRunModal } from '@/components/speed-run-modal';
 
 // Deterministic avatar color from name
 function getAvatarColor(name: string): string {
@@ -68,6 +69,7 @@ export default function DigestPage() {
   const [digestFilter, setDigestFilter] = useState<'all' | 'priority' | 'overdue'>('all');
   const [toast, setToast] = useState<string | null>(null);
   const [decayOffsetDays, setDecayOffsetDays] = useState<number>(0);
+  const [speedRunOpen, setSpeedRunOpen] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -236,10 +238,10 @@ export default function DigestPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
-              IMAGINE CUP STAGE 5/7
+              IMAGINE CUP STAGE 6/7
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
-              Command Palette (Ctrl+K) &bull; Job Change Radar &bull; Network Telemetry
+              Interactive Network Graph &bull; Speed Run Outreach &bull; Deep Intelligence
             </span>
           </div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>Daily Digest</h1>
@@ -247,6 +249,14 @@ export default function DigestPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setSpeedRunOpen(true)}
+            className="btn btn-primary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+            title="Start 60-Second Batch Outreach"
+          >
+            <Zap size={14} /> 60s Speed Run
+          </button>
           <button
             onClick={handleExportMarkdown}
             className="btn btn-secondary btn-sm"
@@ -492,6 +502,17 @@ export default function DigestPage() {
           })
         )}
       </div>
+
+      {/* Morning Speed Run Batch Outreach Modal */}
+      <SpeedRunModal
+        isOpen={speedRunOpen}
+        onClose={() => setSpeedRunOpen(false)}
+        contacts={contacts}
+        onCompletedAll={() => {
+          loadData();
+          showToast('🎉 Power hour completed! Cleared daily relationship SLAs.');
+        }}
+      />
 
       {/* Toast Notification */}
       {toast && (
