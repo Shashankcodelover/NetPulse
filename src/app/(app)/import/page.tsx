@@ -1,7 +1,9 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════
-// CSV Import Page
+// NetPulse — Smart Contact Import & Evaluator Sandbox
+// Local LinkedIn CSV parser, 1-Click Judge Demo Loader,
+// and differential sync with IndexedDB write-ahead storage.
 // ═══════════════════════════════════════════════════════
 
 import { useState, useRef, type DragEvent } from 'react';
@@ -14,29 +16,131 @@ import {
   ArrowRight,
   RefreshCw,
   Info,
+  Download,
+  Sparkles,
+  Users,
+  Database,
+  FileSpreadsheet,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { parseLinkedInCSV, detectChanges, type ParsedContact } from '@/lib/csv-parser';
-import type { ImportResult, ImportError } from '@/lib/types';
+import { netPulseStore } from '@/lib/storage/db';
+import type { Contact, ImportResult, ImportError, RelationshipTier } from '@/lib/types';
 
 type ImportStage = 'upload' | 'parsing' | 'importing' | 'complete' | 'error';
+
+const SAMPLE_JUDGE_DATASET: Partial<Contact>[] = [
+  {
+    full_name: 'Jensen Huang',
+    company: 'NVIDIA',
+    title: 'President & CEO',
+    email: 'jensen.huang@nvidia.com',
+    relationship_tier: 'priority',
+    notes: 'Key partner for enterprise AI hardware clusters and CUDA acceleration pipelines.',
+  },
+  {
+    full_name: 'Mira Murati',
+    company: 'Thinking Machines Lab',
+    title: 'Founder & CEO',
+    email: 'mira@thinkingmachines.ai',
+    relationship_tier: 'priority',
+    notes: 'Ex-CTO OpenAI. Evaluating next-gen autonomous agent reasoning frameworks.',
+  },
+  {
+    full_name: 'Andrej Karpathy',
+    company: 'Eureka Labs',
+    title: 'Founder & AI Architect',
+    email: 'andrej@eurekalabs.ai',
+    relationship_tier: 'priority',
+    notes: 'Discussed multimodal foundation models and edge inference optimization.',
+  },
+  {
+    full_name: 'Nat Friedman',
+    company: 'AI Grant',
+    title: 'General Partner & Former GitHub CEO',
+    email: 'nat@aigrant.org',
+    relationship_tier: 'priority',
+    notes: 'Leading investor in developer tools and autonomous agent swarms.',
+  },
+  {
+    full_name: 'Daniel Gross',
+    company: 'Pioneer Fund',
+    title: 'Co-Founder & Investor',
+    email: 'daniel@pioneer.fund',
+    relationship_tier: 'priority',
+    notes: 'Computing cluster syndication and seed funding for AI-native architectures.',
+  },
+  {
+    full_name: 'Satya Nadella',
+    company: 'Microsoft',
+    title: 'Chairman and CEO',
+    email: 'satya.nadella@microsoft.com',
+    relationship_tier: 'priority',
+    notes: 'Executive alignment on Azure distributed agent services.',
+  },
+  {
+    full_name: 'Mustafa Suleyman',
+    company: 'Microsoft AI',
+    title: 'CEO, Microsoft AI',
+    email: 'mustafa@microsoft.com',
+    relationship_tier: 'priority',
+    notes: 'DeepMind co-founder leading Copilot and consumer AI frontiers.',
+  },
+  {
+    full_name: 'Guillermo Rauch',
+    company: 'Vercel',
+    title: 'CEO & Founder',
+    email: 'rauchg@vercel.com',
+    relationship_tier: 'warm',
+    notes: 'Pioneering edge functions, streaming SSR, and Next.js ecosystem.',
+  },
+  {
+    full_name: 'Harrison Chase',
+    company: 'LangChain',
+    title: 'Co-Founder & CEO',
+    email: 'harrison@langchain.dev',
+    relationship_tier: 'warm',
+    notes: 'LangGraph architecture and stateful multi-agent workflows.',
+  },
+  {
+    full_name: 'Amjad Masad',
+    company: 'Replit',
+    title: 'Founder & CEO',
+    email: 'amjad@replit.com',
+    relationship_tier: 'warm',
+    notes: 'Collaborative development environments and cloud-native execution.',
+  },
+  {
+    full_name: 'Kelsey Hightower',
+    company: 'Independent / Former Google Cloud',
+    title: 'Principal Engineer & Board Advisor',
+    email: 'kelsey@minimal.dev',
+    relationship_tier: 'warm',
+    notes: 'Distributed systems resilience, Kubernetes simplicity, and developer craft.',
+  },
+  {
+    full_name: 'Suhail Doshi',
+    company: 'Playground AI & Mixpanel',
+    title: 'Founder & CEO',
+    email: 'suhail@playgroundai.com',
+    relationship_tier: 'warm',
+    notes: 'Generative media pipelines, product velocity, and startup founder mentorship.',
+  },
+];
 
 export default function ImportPage() {
   const [stage, setStage] = useState<ImportStage>('upload');
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState('');
-  const [, setParsedContacts] = useState<ParsedContact[]>([]);
   const [parseErrors, setParseErrors] = useState<ImportError[]>([]);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleFile = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.csv')) {
-      setErrorMessage('Please upload a CSV file');
+      setErrorMessage('Please upload a valid CSV file');
       setStage('error');
       return;
     }
@@ -46,187 +150,205 @@ export default function ImportPage() {
 
     try {
       const { contacts, errors } = await parseLinkedInCSV(file);
-      setParsedContacts(contacts);
       setParseErrors(errors);
 
       if (contacts.length === 0) {
-        setErrorMessage('No valid contacts found in the CSV. Make sure it\'s a LinkedIn connections export.');
+        setErrorMessage("No valid contacts found in the CSV. Make sure it's a LinkedIn connections export format.");
         setStage('error');
         return;
       }
 
-      // Proceed to import
-      await importContacts(contacts);
+      await importParsedContacts(contacts);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to parse CSV');
       setStage('error');
     }
   };
 
-  const importContacts = async (contacts: ParsedContact[]) => {
+  const importParsedContacts = async (contacts: ParsedContact[]) => {
     setStage('importing');
-    setProgress(0);
+    setProgress(20);
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+    const now = new Date().toISOString();
+    const formatted: Contact[] = contacts.map((c, idx) => ({
+      id: `imported-${Date.now()}-${idx}`,
+      user_id: 'local-user',
+      full_name: c.full_name,
+      company: c.company || null,
+      title: c.title || null,
+      email: c.email || null,
+      linkedin_url: c.linkedin_url || null,
+      relationship_tier: 'warm' as RelationshipTier,
+      last_contacted_at: c.connected_on || null,
+      source: 'linkedin',
+      previous_company: null,
+      previous_title: null,
+      last_bulk_synced_at: now,
+      last_enriched_at: null,
+      notes: null,
+      created_at: now,
+      updated_at: now,
+    }));
 
-      // Load existing contacts for dedup
-      const { data: existing } = await supabase
-        .from('contacts')
-        .select('id, full_name, company, title, linkedin_url')
-        .eq('user_id', user.id);
+    setProgress(60);
+    const stats = await netPulseStore.importContacts(formatted);
+    setProgress(100);
 
-      interface ExistingContact {
-        id: string;
-        full_name: string;
-        company: string | null;
-        title: string | null;
-        linkedin_url: string | null;
-      }
-
-      const existingMap = new Map<string, ExistingContact>();
-      (existing as ExistingContact[] | null)?.forEach(c => {
-        // Key by linkedin_url if available, otherwise by full_name+company
-        const key = c.linkedin_url || `${c.full_name}||${c.company || ''}`;
-        existingMap.set(key.toLowerCase(), c);
-      });
-
-      const result: ImportResult = { total: contacts.length, created: 0, updated: 0, unchanged: 0, errors: [] };
-      const batchSize = 50;
-
-      for (let i = 0; i < contacts.length; i += batchSize) {
-        const batch = contacts.slice(i, i + batchSize);
-        const toInsert: Record<string, unknown>[] = [];
-        const toUpdate: { id: string; data: Record<string, unknown> }[] = [];
-
-        for (const contact of batch) {
-          const key = contact.linkedin_url
-            ? contact.linkedin_url.toLowerCase()
-            : `${contact.full_name}||${contact.company || ''}`.toLowerCase();
-
-          const existingContact = existingMap.get(key);
-
-          if (existingContact) {
-            // Check for changes
-            const { changed } = detectChanges(
-              existingContact as { full_name: string; company: string; title: string },
-              contact
-            );
-
-            if (changed) {
-              toUpdate.push({
-                id: existingContact.id,
-                data: {
-                  company: contact.company || existingContact.company,
-                  title: contact.title || existingContact.title,
-                  previous_company: existingContact.company,
-                  previous_title: existingContact.title,
-                  last_bulk_synced_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                },
-              });
-              result.updated++;
-            } else {
-              result.unchanged++;
-            }
-          } else {
-            toInsert.push({
-              user_id: user.id,
-              full_name: contact.full_name,
-              email: contact.email,
-              company: contact.company,
-              title: contact.title,
-              linkedin_url: contact.linkedin_url,
-              source: 'linkedin',
-              relationship_tier: 'warm', // Default new imports to 'warm'
-              last_bulk_synced_at: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-            result.created++;
-          }
-        }
-
-        // Batch insert
-        if (toInsert.length > 0) {
-          const { error } = await supabase.from('contacts').insert(toInsert);
-          if (error) {
-            result.errors.push({
-              row: i,
-              name: `Batch ${Math.floor(i / batchSize) + 1}`,
-              message: error.message,
-            });
-          }
-        }
-
-        // Batch update
-        for (const { id, data } of toUpdate) {
-          const { error } = await supabase.from('contacts').update(data).eq('id', id);
-          if (error) {
-            result.errors.push({ row: i, name: id, message: error.message });
-          }
-        }
-
-        setProgress(Math.round(((i + batch.length) / contacts.length) * 100));
-      }
-
-      setImportResult(result);
-      setStage('complete');
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Import failed');
-      setStage('error');
-    }
+    setImportResult({
+      total: contacts.length,
+      created: stats.added,
+      updated: stats.updated,
+      unchanged: stats.unchanged,
+      errors: [],
+    });
+    setStage('complete');
   };
 
-  const handleDrop = (e: DragEvent) => {
+  const loadJudgeDataset = async () => {
+    setFileName('judge_silicon_valley_leaders.csv');
+    setStage('importing');
+    setProgress(30);
+
+    const now = new Date().toISOString();
+    const formatted: Contact[] = SAMPLE_JUDGE_DATASET.map((c, idx) => ({
+      id: `judge-${Date.now()}-${idx}`,
+      user_id: 'local-user',
+      full_name: c.full_name || 'Leader',
+      company: c.company || 'Enterprise',
+      title: c.title || 'Executive',
+      email: c.email || null,
+      linkedin_url: `https://linkedin.com/in/${c.full_name?.toLowerCase().replace(/\s+/g, '-')}`,
+      relationship_tier: (c.relationship_tier || 'priority') as RelationshipTier,
+      last_contacted_at: new Date(Date.now() - (idx * 5 + 10) * 86400000).toISOString().split('T')[0],
+      source: 'linkedin',
+      previous_company: null,
+      previous_title: null,
+      last_bulk_synced_at: now,
+      last_enriched_at: now,
+      notes: c.notes || null,
+      created_at: now,
+      updated_at: now,
+    }));
+
+    setProgress(70);
+    const stats = await netPulseStore.importContacts(formatted);
+    setProgress(100);
+
+    setImportResult({
+      total: formatted.length,
+      created: stats.added,
+      updated: stats.updated,
+      unchanged: stats.unchanged,
+      errors: [],
+    });
+    setStage('complete');
+  };
+
+  const downloadSampleCSV = () => {
+    const csvHeader = 'First Name,Last Name,URL,Email Address,Company,Position,Connected On\r\n';
+    const csvRows = [
+      'Jensen,Huang,https://www.linkedin.com/in/jensenhuang,jensen@nvidia.com,NVIDIA,President and CEO,15 Jan 2026',
+      'Mira,Murati,https://www.linkedin.com/in/miramurati,mira@thinkingmachines.ai,Thinking Machines Lab,Founder & CEO,22 Feb 2026',
+      'Andrej,Karpathy,https://www.linkedin.com/in/andrej-karpathy,andrej@eurekalabs.ai,Eureka Labs,Founder,10 Mar 2026',
+      'Satya,Nadella,https://www.linkedin.com/in/satyanadella,satya@microsoft.com,Microsoft,Chairman and CEO,05 Apr 2026',
+      'Guillermo,Rauch,https://www.linkedin.com/in/rauchg,rauchg@vercel.com,Vercel,CEO and Founder,18 May 2026',
+    ].join('\r\n');
+
+    const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'NetPulse_Sample_Connections.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const onDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const onDragLeave = () => setDragOver(false);
+
+  const onDrop = (e: DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
   };
 
-  const handleDragOver = (e: DragEvent) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
-
-  const handleDragLeave = () => setDragOver(false);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
-  };
-
-  const reset = () => {
-    setStage('upload');
-    setFileName('');
-    setParsedContacts([]);
-    setParseErrors([]);
-    setImportResult(null);
-    setErrorMessage('');
-    setProgress(0);
-  };
-
   return (
-    <div className="page-container">
+    <div className="page-container" style={{ maxWidth: 940 }}>
+      {/* Page Header */}
       <div className="page-header animate-fade-in">
-        <h1>Import Connections</h1>
-        <p>Upload your LinkedIn connections CSV to populate your contact database</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
+            IMPORT &amp; SYNC ENGINE
+          </span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
+            LinkedIn CSV &bull; Zero-Loss IndexedDB Write-Ahead
+          </span>
+        </div>
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>Import Network Connections</h1>
+        <p style={{ margin: 0, color: 'var(--np-text-secondary)', fontSize: '0.88rem' }}>
+          Seamlessly ingest LinkedIn CSV exports, deduplicate contacts, and seed relationship health scores
+        </p>
       </div>
 
-      {/* Instructions */}
-      <div className="card animate-fade-in-up" style={{ marginBottom: 24 }}>
-        <div className="card-body" style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <Info size={20} style={{ color: 'var(--np-accent)', flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <p style={{ fontWeight: 600, marginBottom: 4, fontSize: '0.9375rem' }}>How to export from LinkedIn</p>
-            <ol style={{ color: 'var(--np-text-secondary)', fontSize: '0.875rem', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <li>Go to <strong>LinkedIn Settings → Data Privacy</strong></li>
-              <li>Click <strong>&quot;Get a copy of your data&quot;</strong></li>
-              <li>Select <strong>Connections</strong> and request the archive</li>
-              <li>Download the CSV when ready and upload it here</li>
-            </ol>
+      {/* 1-Click Judge Sandbox Card */}
+      <div
+        className="card animate-fade-in-up"
+        style={{
+          marginBottom: 24,
+          padding: 22,
+          borderRadius: 16,
+          background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.06) 0%, rgba(124, 58, 237, 0.08) 100%)',
+          border: '1px solid rgba(79, 70, 229, 0.25)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Sparkles size={22} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 2px 0' }}>
+                Instant Evaluator Demo Dataset
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--np-text-secondary)' }}>
+                Don't have a personal LinkedIn export ready? Load 12 high-profile tech leaders &amp; VCs in 1 click.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={downloadSampleCSV}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Download size={14} /> Sample CSV
+            </button>
+            <button
+              onClick={loadJudgeDataset}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+            >
+              <Database size={14} /> Load 12 Leaders
+            </button>
           </div>
         </div>
       </div>
@@ -234,180 +356,189 @@ export default function ImportPage() {
       {/* Upload Stage */}
       {stage === 'upload' && (
         <div
-          className={`drop-zone animate-fade-in-up ${dragOver ? 'drag-over' : ''}`}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
           onClick={() => fileInputRef.current?.click()}
+          className={`card animate-fade-in-up ${dragOver ? 'drag-over' : ''}`}
+          style={{
+            padding: '50px 30px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            border: `2px dashed ${dragOver ? 'var(--np-accent)' : 'var(--np-border)'}`,
+            borderRadius: 18,
+            transition: 'all 0.2s ease',
+          }}
         >
           <input
             ref={fileInputRef}
             type="file"
             accept=".csv"
-            onChange={handleFileSelect}
+            onChange={e => {
+              const file = e.target.files?.[0];
+              if (file) handleFile(file);
+            }}
             style={{ display: 'none' }}
           />
-          <div className="drop-icon">
-            <Upload size={24} />
+
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'var(--np-bg-secondary)',
+              border: '1px solid var(--np-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px auto',
+              color: 'var(--np-accent)',
+            }}
+          >
+            <Upload size={26} />
           </div>
-          <h3>Drop your LinkedIn CSV here</h3>
-          <p>or click to browse • Supports LinkedIn&apos;s Connections.csv format</p>
+
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>
+            Drop your LinkedIn Connections.csv here
+          </h3>
+          <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.88rem', maxWidth: 440, margin: '0 auto 16px auto' }}>
+            Export your network from LinkedIn: <em>Settings &amp; Privacy &rarr; Data Privacy &rarr; Get a copy of your data &rarr; Connections</em>.
+          </p>
+
+          <button className="btn btn-primary btn-sm" style={{ pointerEvents: 'none' }}>
+            Choose File from Disk
+          </button>
         </div>
       )}
 
-      {/* Parsing / Importing Stage */}
+      {/* Parsing & Importing Stage */}
       {(stage === 'parsing' || stage === 'importing') && (
-        <div className="card animate-scale-in">
-          <div className="card-body" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <RefreshCw
-              size={32}
+        <div className="card animate-scale-in" style={{ padding: 40, textAlign: 'center', borderRadius: 16 }}>
+          <RefreshCw size={36} className="spin" style={{ color: 'var(--np-accent)', margin: '0 auto 16px auto' }} />
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 8 }}>
+            {stage === 'parsing' ? 'Parsing CSV Records...' : 'Importing & Deduplicating Contacts...'}
+          </h3>
+          <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.86rem', marginBottom: 20 }}>
+            {fileName}
+          </p>
+
+          {/* Progress Bar */}
+          <div style={{ width: '100%', maxWidth: 360, height: 8, background: 'var(--np-bg-secondary)', borderRadius: 10, margin: '0 auto', overflow: 'hidden' }}>
+            <div
               style={{
-                color: 'var(--np-accent)',
-                animation: 'spin 1s linear infinite',
-                marginBottom: 16,
+                width: `${progress}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%)',
+                transition: 'width 0.3s ease',
               }}
             />
-            <h3 style={{ fontWeight: 600, marginBottom: 4 }}>
-              {stage === 'parsing' ? 'Parsing CSV...' : 'Importing contacts...'}
-            </h3>
-            <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.875rem' }}>
-              {fileName}
-            </p>
-            {stage === 'importing' && (
-              <div style={{ marginTop: 20, maxWidth: 400, margin: '20px auto 0' }}>
-                <div style={{
-                  height: 6,
-                  background: 'var(--np-bg-tertiary)',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${progress}%`,
-                    background: 'var(--np-accent)',
-                    borderRadius: 3,
-                    transition: 'width 0.3s ease',
-                  }} />
-                </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--np-text-tertiary)', marginTop: 8 }}>
-                  {progress}% complete
-                </p>
-              </div>
-            )}
           </div>
         </div>
       )}
 
       {/* Complete Stage */}
       {stage === 'complete' && importResult && (
-        <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="card">
-            <div className="card-body" style={{ textAlign: 'center', padding: '40px 24px' }}>
-              <CheckCircle2 size={48} style={{ color: 'var(--np-success)', marginBottom: 16 }} />
-              <h3 style={{ fontWeight: 700, fontSize: '1.25rem', marginBottom: 8 }}>
-                Import Complete!
-              </h3>
-              <p style={{ color: 'var(--np-text-secondary)', marginBottom: 24 }}>
-                Processed {importResult.total} contacts from {fileName}
+        <div className="card animate-scale-in" style={{ padding: 32, borderRadius: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.12)',
+                color: '#10b981',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <CheckCircle2 size={24} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0 0 2px 0' }}>
+                Import Completed Successfully!
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--np-text-secondary)' }}>
+                Differential sync processed {importResult.total} connection records into local storage.
               </p>
+            </div>
+          </div>
 
-              {/* Stats Grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                gap: 12,
-                maxWidth: 500,
-                margin: '0 auto 28px',
-              }}>
-                <div className="card" style={{ padding: 16, textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--np-success)' }}>
-                    {importResult.created}
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--np-text-secondary)' }}>
-                    New
-                  </div>
-                </div>
-                <div className="card" style={{ padding: 16, textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--np-accent)' }}>
-                    {importResult.updated}
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--np-text-secondary)' }}>
-                    Updated
-                  </div>
-                </div>
-                <div className="card" style={{ padding: 16, textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--np-text-tertiary)' }}>
-                    {importResult.unchanged}
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--np-text-secondary)' }}>
-                    Unchanged
-                  </div>
-                </div>
+          {/* Differential Metrics Strip */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+            <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#10b981' }}>
+                {importResult.created}
               </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--np-text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>
+                Added Contacts
+              </div>
+            </div>
 
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                <button onClick={() => router.push('/')} className="btn btn-primary">
-                  View Digest <ArrowRight size={16} />
-                </button>
-                <button onClick={reset} className="btn btn-secondary">
-                  Import Another
-                </button>
+            <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#3b82f6' }}>
+                {importResult.updated}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--np-text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>
+                Updated Profiles
+              </div>
+            </div>
+
+            <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--np-text-tertiary)' }}>
+                {importResult.unchanged}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--np-text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>
+                Unchanged
               </div>
             </div>
           </div>
 
-          {/* Parse Errors */}
-          {parseErrors.length > 0 && (
-            <div className="card">
-              <div className="card-body">
-                <h4 style={{ fontWeight: 600, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--np-warning)' }}>
-                  <AlertTriangle size={16} />
-                  {parseErrors.length} rows had issues
-                </h4>
-                <div style={{ maxHeight: 200, overflow: 'auto', fontSize: '0.8125rem' }}>
-                  {parseErrors.slice(0, 20).map((error, i) => (
-                    <div key={i} style={{
-                      padding: '8px 0',
-                      borderBottom: '1px solid var(--np-border-light)',
-                      color: 'var(--np-text-secondary)',
-                    }}>
-                      <strong>Row {error.row}</strong> ({error.name}): {error.message}
-                    </div>
-                  ))}
-                  {parseErrors.length > 20 && (
-                    <p style={{ marginTop: 8, color: 'var(--np-text-tertiary)' }}>
-                      ...and {parseErrors.length - 20} more
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Error Stage */}
-      {stage === 'error' && (
-        <div className="card animate-scale-in">
-          <div className="card-body" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <XCircle size={48} style={{ color: 'var(--np-danger)', marginBottom: 16 }} />
-            <h3 style={{ fontWeight: 600, marginBottom: 8 }}>Import Failed</h3>
-            <p style={{ color: 'var(--np-text-secondary)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
-              {errorMessage}
-            </p>
-            <button onClick={reset} className="btn btn-primary">
-              Try Again
+          {/* Navigation CTAs */}
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => {
+                setStage('upload');
+                setImportResult(null);
+              }}
+              className="btn btn-secondary btn-sm"
+            >
+              Import Another File
+            </button>
+            <button
+              onClick={() => router.push('/pipeline')}
+              className="btn btn-secondary btn-sm"
+            >
+              View Pipeline Kanban
+            </button>
+            <button
+              onClick={() => router.push('/')}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+            >
+              Inspect Daily Digest <ArrowRight size={14} />
             </button>
           </div>
         </div>
       )}
 
-      <style jsx>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      {/* Error Stage */}
+      {stage === 'error' && (
+        <div className="card animate-shake" style={{ padding: 32, borderRadius: 16, textAlign: 'center' }}>
+          <XCircle size={40} style={{ color: '#ef4444', margin: '0 auto 14px auto' }} />
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 8 }}>Import Failed</h3>
+          <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.88rem', maxWidth: 420, margin: '0 auto 20px auto' }}>
+            {errorMessage}
+          </p>
+          <button
+            onClick={() => setStage('upload')}
+            className="btn btn-primary btn-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
     </div>
   );
 }

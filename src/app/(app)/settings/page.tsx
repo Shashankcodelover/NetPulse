@@ -1,7 +1,8 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════
-// Settings Page
+// NetPulse — Cadence SLA & Relationship Scoring Settings
+// Reactive local write-ahead storage with cloud fallback.
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
@@ -14,45 +15,45 @@ import {
   Briefcase,
   X,
   Plus,
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { netPulseStore } from '@/lib/storage/db';
 import type { UserSettings, ScoringWeights } from '@/lib/types';
 import { DEFAULT_SETTINGS } from '@/lib/types';
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Partial<UserSettings>>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<UserSettings>({
+    ...DEFAULT_SETTINGS,
+    id: 'local-settings',
+    user_id: 'local-user',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [newCompany, setNewCompany] = useState('');
   const [newTitle, setNewTitle] = useState('');
 
-  const supabase = createClient();
-
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (data) {
-        setSettings(data);
-      }
+      const data = await netPulseStore.getSettings();
+      setSettings(data);
       setLoading(false);
     }
     load();
-  }, [supabase]);
+  }, []);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3200);
+  };
 
   const updateWeight = (key: keyof ScoringWeights, value: number) => {
     setSettings(prev => ({
       ...prev,
       scoring_weights: {
-        ...DEFAULT_SETTINGS.scoring_weights,
         ...prev.scoring_weights,
         [key]: value,
       },
@@ -61,9 +62,11 @@ export default function SettingsPage() {
 
   const addCompany = () => {
     if (!newCompany.trim()) return;
+    const trimmed = newCompany.trim();
+    if (settings.target_companies?.includes(trimmed)) return;
     setSettings(prev => ({
       ...prev,
-      target_companies: [...(prev.target_companies || []), newCompany.trim()],
+      target_companies: [...(prev.target_companies || []), trimmed],
     }));
     setNewCompany('');
   };
@@ -77,9 +80,11 @@ export default function SettingsPage() {
 
   const addTitle = () => {
     if (!newTitle.trim()) return;
+    const trimmed = newTitle.trim();
+    if (settings.target_titles?.includes(trimmed)) return;
     setSettings(prev => ({
       ...prev,
-      target_titles: [...(prev.target_titles || []), newTitle.trim()],
+      target_titles: [...(prev.target_titles || []), trimmed],
     }));
     setNewTitle('');
   };
@@ -93,261 +98,351 @@ export default function SettingsPage() {
 
   const saveSettings = async () => {
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const payload = {
-      user_id: user.id,
-      scoring_weights: settings.scoring_weights,
-      digest_count: settings.digest_count,
-      digest_email_time: settings.digest_email_time,
-      digest_email_enabled: settings.digest_email_enabled,
-      cadence_priority_days: settings.cadence_priority_days,
-      cadence_warm_days: settings.cadence_warm_days,
-      cadence_cold_days: settings.cadence_cold_days,
-      target_companies: settings.target_companies,
-      target_titles: settings.target_titles,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert(payload, { onConflict: 'user_id' });
-
-    if (!error) {
-      showToast('Settings saved');
+    try {
+      const updated: UserSettings = {
+        ...settings,
+        updated_at: new Date().toISOString(),
+      };
+      await netPulseStore.saveSettings(updated);
+      showToast('Cadence SLAs & scoring formulas saved! Alerts recalculated.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+  const resetToDefaultFormulas = () => {
+    setSettings({
+      ...DEFAULT_SETTINGS,
+      id: 'local-settings',
+      user_id: 'local-user',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    showToast('Reset configuration to default mathematical baseline');
   };
 
   if (loading) {
     return (
-      <div className="page-container">
-        <div className="skeleton" style={{ height: 400, borderRadius: 'var(--np-radius)' }} />
+      <div className="page-container" style={{ maxWidth: 880 }}>
+        <div className="skeleton" style={{ height: 180, borderRadius: 16, marginBottom: 20 }} />
+        <div className="skeleton" style={{ height: 260, borderRadius: 16 }} />
       </div>
     );
   }
 
-  const weights = settings.scoring_weights || DEFAULT_SETTINGS.scoring_weights;
-
   return (
-    <div className="page-container">
+    <div className="page-container" style={{ maxWidth: 900 }}>
+      {/* Header */}
       <div className="page-header animate-fade-in">
-        <h1>Settings</h1>
-        <p>Configure your priority scoring, cadence targets, and digest preferences</p>
-      </div>
-
-      {/* Priority Scoring Weights */}
-      <div className="card animate-fade-in-up" style={{ marginBottom: 20 }}>
-        <div className="card-body">
-          <h3 style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Sliders size={18} style={{ color: 'var(--np-accent)' }} />
-            Priority Scoring Weights
-          </h3>
-          <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.875rem', marginBottom: 20 }}>
-            Adjust how much each factor influences your daily digest ranking
-          </p>
-
-          {[
-            { key: 'recency_weight' as keyof ScoringWeights, label: 'Recency', desc: 'How long since last contact' },
-            { key: 'tier_weight' as keyof ScoringWeights, label: 'Relationship Tier', desc: 'Priority > Warm > Cold' },
-            { key: 'title_weight' as keyof ScoringWeights, label: 'Role/Title', desc: 'Decision-maker titles score higher' },
-            { key: 'engagement_weight' as keyof ScoringWeights, label: 'Engagement History', desc: 'Past interaction frequency' },
-          ].map(({ key, label, desc }) => (
-            <div key={key} style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div>
-                  <span style={{ fontWeight: 500, fontSize: '0.9375rem' }}>{label}</span>
-                  <span style={{ color: 'var(--np-text-tertiary)', fontSize: '0.8125rem', marginLeft: 8 }}>{desc}</span>
-                </div>
-                <span style={{ fontWeight: 700, color: 'var(--np-accent)', minWidth: 30, textAlign: 'right' }}>
-                  {weights[key]}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={weights[key]}
-                onChange={e => updateWeight(key, parseInt(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--np-accent)' }}
-              />
-            </div>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
+            ENGINE CONFIGURATION
+          </span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
+            Real-Time SLA Cadences &bull; Algorithmic Urgency Weights
+          </span>
         </div>
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>System Settings</h1>
+        <p style={{ margin: 0, color: 'var(--np-text-secondary)', fontSize: '0.88rem' }}>
+          Calibrate cadence thresholds, seniority priorities, and mathematical decay curves
+        </p>
       </div>
 
-      {/* Cadence Settings */}
-      <div className="card animate-fade-in-up" style={{ marginBottom: 20 }}>
-        <div className="card-body">
-          <h3 style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Clock size={18} style={{ color: 'var(--np-accent)' }} />
-            Contact Cadence
-          </h3>
-          <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.875rem', marginBottom: 20 }}>
-            How often you want to reach out to contacts in each tier
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-            <div className="form-group">
-              <label className="form-label">Priority (days)</label>
-              <input
-                type="number"
-                className="form-input"
-                min="1"
-                max="30"
-                value={settings.cadence_priority_days || 3}
-                onChange={e => setSettings({ ...settings, cadence_priority_days: parseInt(e.target.value) || 3 })}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Warm (days)</label>
-              <input
-                type="number"
-                className="form-input"
-                min="1"
-                max="180"
-                value={settings.cadence_warm_days || 30}
-                onChange={e => setSettings({ ...settings, cadence_warm_days: parseInt(e.target.value) || 30 })}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Cold (days)</label>
-              <input
-                type="number"
-                className="form-input"
-                min="1"
-                max="365"
-                value={settings.cadence_cold_days || 90}
-                onChange={e => setSettings({ ...settings, cadence_cold_days: parseInt(e.target.value) || 90 })}
-              />
-            </div>
-          </div>
+      {/* Cadence Intervals Card */}
+      <div className="card animate-fade-in-up" style={{ marginBottom: 20, padding: 22, borderRadius: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <Clock size={20} style={{ color: 'var(--np-accent)' }} />
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Cadence SLA Thresholds</h2>
         </div>
-      </div>
+        <p style={{ fontSize: '0.84rem', color: 'var(--np-text-secondary)', marginTop: -8, marginBottom: 20 }}>
+          Define maximum inactive days before relationships trigger Cadence Watchdog warnings.
+        </p>
 
-      {/* Digest Settings */}
-      <div className="card animate-fade-in-up" style={{ marginBottom: 20 }}>
-        <div className="card-body">
-          <h3 style={{ fontWeight: 600, marginBottom: 16 }}>Digest Preferences</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-            <div className="form-group">
-              <label className="form-label">Contacts per digest</label>
-              <input
-                type="number"
-                className="form-input"
-                min="5"
-                max="25"
-                value={settings.digest_count || 12}
-                onChange={e => setSettings({ ...settings, digest_count: parseInt(e.target.value) || 12 })}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Email digest time</label>
-              <input
-                type="time"
-                className="form-input"
-                value={settings.digest_email_time || '08:00'}
-                onChange={e => setSettings({ ...settings, digest_email_time: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Target Companies */}
-      <div className="card animate-fade-in-up" style={{ marginBottom: 20 }}>
-        <div className="card-body">
-          <h3 style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Building2 size={18} style={{ color: 'var(--np-accent)' }} />
-            Target Companies
-          </h3>
-          <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.875rem', marginBottom: 16 }}>
-            Contacts at these companies get a scoring bonus
-          </p>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-            {(settings.target_companies || []).map((company, i) => (
-              <span key={i} className="badge badge-priority" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px' }}>
-                {company}
-                <button onClick={() => removeCompany(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                  <X size={12} />
-                </button>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+          {/* Priority Tier SLA */}
+          <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontWeight: 700, fontSize: '0.84rem' }}>Priority Tier SLA</span>
+              <span className="badge badge-priority" style={{ fontSize: '0.72rem' }}>
+                {settings.cadence_priority_days} Days
               </span>
-            ))}
+            </div>
+            <input
+              type="range"
+              min={3}
+              max={30}
+              step={1}
+              value={settings.cadence_priority_days}
+              onChange={e => setSettings({ ...settings, cadence_priority_days: Number(e.target.value) })}
+              style={{ width: '100%', cursor: 'pointer' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--np-text-tertiary)', marginTop: 4 }}>
+              <span>3 days (Hyper-active)</span>
+              <span>30 days</span>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          {/* Warm Tier SLA */}
+          <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontWeight: 700, fontSize: '0.84rem' }}>Warm Tier SLA</span>
+              <span className="badge badge-warm" style={{ fontSize: '0.72rem' }}>
+                {settings.cadence_warm_days} Days
+              </span>
+            </div>
+            <input
+              type="range"
+              min={14}
+              max={90}
+              step={1}
+              value={settings.cadence_warm_days}
+              onChange={e => setSettings({ ...settings, cadence_warm_days: Number(e.target.value) })}
+              style={{ width: '100%', cursor: 'pointer' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--np-text-tertiary)', marginTop: 4 }}>
+              <span>14 days</span>
+              <span>90 days (Quarterly)</span>
+            </div>
+          </div>
+
+          {/* Cold Tier SLA */}
+          <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontWeight: 700, fontSize: '0.84rem' }}>Cold Tier SLA</span>
+              <span className="badge badge-cold" style={{ fontSize: '0.72rem' }}>
+                {settings.cadence_cold_days} Days
+              </span>
+            </div>
+            <input
+              type="range"
+              min={30}
+              max={180}
+              step={5}
+              value={settings.cadence_cold_days}
+              onChange={e => setSettings({ ...settings, cadence_cold_days: Number(e.target.value) })}
+              style={{ width: '100%', cursor: 'pointer' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--np-text-tertiary)', marginTop: 4 }}>
+              <span>30 days</span>
+              <span>180 days (Semi-annual)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Priority Scoring Weights Card */}
+      <div className="card animate-fade-in-up" style={{ marginBottom: 20, padding: 22, borderRadius: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <Sliders size={20} style={{ color: 'var(--np-accent)' }} />
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Decay Scoring Weights</h2>
+        </div>
+        <p style={{ fontSize: '0.84rem', color: 'var(--np-text-secondary)', marginTop: -8, marginBottom: 20 }}>
+          Adjust the relative mathematical weights powering the deterministic priority formula.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+          {/* Recency Decay Weight */}
+          <div style={{ padding: 14, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.82rem', fontWeight: 700 }}>
+              <span>Recency Urgency</span>
+              <span style={{ color: '#4f46e5' }}>{settings.scoring_weights?.recency_weight || 35}%</span>
+            </div>
+            <input
+              type="range"
+              min={10}
+              max={70}
+              step={5}
+              value={settings.scoring_weights?.recency_weight || 35}
+              onChange={e => updateWeight('recency_weight', Number(e.target.value))}
+              style={{ width: '100%', cursor: 'pointer' }}
+            />
+          </div>
+
+          {/* Tier Multiplier */}
+          <div style={{ padding: 14, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.82rem', fontWeight: 700 }}>
+              <span>Relationship Tier</span>
+              <span style={{ color: '#4f46e5' }}>{settings.scoring_weights?.tier_weight || 25}%</span>
+            </div>
+            <input
+              type="range"
+              min={10}
+              max={60}
+              step={5}
+              value={settings.scoring_weights?.tier_weight || 25}
+              onChange={e => updateWeight('tier_weight', Number(e.target.value))}
+              style={{ width: '100%', cursor: 'pointer' }}
+            />
+          </div>
+
+          {/* Title Seniority */}
+          <div style={{ padding: 14, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.82rem', fontWeight: 700 }}>
+              <span>Title Seniority</span>
+              <span style={{ color: '#4f46e5' }}>{settings.scoring_weights?.title_weight || 20}%</span>
+            </div>
+            <input
+              type="range"
+              min={5}
+              max={50}
+              step={5}
+              value={settings.scoring_weights?.title_weight || 20}
+              onChange={e => updateWeight('title_weight', Number(e.target.value))}
+              style={{ width: '100%', cursor: 'pointer' }}
+            />
+          </div>
+
+          {/* Engagement Frequency */}
+          <div style={{ padding: 14, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.82rem', fontWeight: 700 }}>
+              <span>Engagement Frequency</span>
+              <span style={{ color: '#4f46e5' }}>{settings.scoring_weights?.engagement_weight || 20}%</span>
+            </div>
+            <input
+              type="range"
+              min={5}
+              max={50}
+              step={5}
+              value={settings.scoring_weights?.engagement_weight || 20}
+              onChange={e => updateWeight('engagement_weight', Number(e.target.value))}
+              style={{ width: '100%', cursor: 'pointer' }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Target Companies & Titles */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 24 }}>
+        {/* Target Companies */}
+        <div className="card animate-fade-in-up" style={{ padding: 20, borderRadius: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Building2 size={18} style={{ color: 'var(--np-accent)' }} />
+            <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>Target Organizations</h3>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--np-text-secondary)', marginBottom: 12 }}>
+            Contacts at these companies receive priority scoring boosts.
+          </p>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <input
               className="form-input"
               value={newCompany}
               onChange={e => setNewCompany(e.target.value)}
-              placeholder="Add a company..."
               onKeyDown={e => e.key === 'Enter' && addCompany()}
-              style={{ maxWidth: 300 }}
+              placeholder="e.g. OpenAI, DeepMind, Stripe"
+              style={{ flex: 1, fontSize: '0.84rem' }}
             />
-            <button onClick={addCompany} className="btn btn-secondary btn-sm">
+            <button onClick={addCompany} className="btn btn-secondary btn-sm" disabled={!newCompany.trim()}>
               <Plus size={14} /> Add
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Target Titles */}
-      <div className="card animate-fade-in-up" style={{ marginBottom: 20 }}>
-        <div className="card-body">
-          <h3 style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Briefcase size={18} style={{ color: 'var(--np-accent)' }} />
-            Target Titles
-          </h3>
-          <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.875rem', marginBottom: 16 }}>
-            Contacts with these titles get a scoring bonus
-          </p>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-            {(settings.target_titles || []).map((title, i) => (
-              <span key={i} className="badge badge-priority" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px' }}>
-                {title}
-                <button onClick={() => removeTitle(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {(settings.target_companies || []).map((company, index) => (
+              <span
+                key={company}
+                className="badge"
+                style={{
+                  background: 'var(--np-bg-secondary)',
+                  border: '1px solid var(--np-border)',
+                  fontSize: '0.78rem',
+                  padding: '5px 10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                {company}
+                <button
+                  type="button"
+                  onClick={() => removeCompany(index)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--np-text-tertiary)' }}
+                >
                   <X size={12} />
                 </button>
               </span>
             ))}
           </div>
+        </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+        {/* Target Seniority Titles */}
+        <div className="card animate-fade-in-up" style={{ padding: 20, borderRadius: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Briefcase size={18} style={{ color: 'var(--np-accent)' }} />
+            <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>Target Executive Titles</h3>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--np-text-secondary)', marginBottom: 12 }}>
+            Key decision-maker titles receiving urgency weighting.
+          </p>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <input
               className="form-input"
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
-              placeholder="Add a title..."
               onKeyDown={e => e.key === 'Enter' && addTitle()}
-              style={{ maxWidth: 300 }}
+              placeholder="e.g. Founder, CEO, Partner, VP"
+              style={{ flex: 1, fontSize: '0.84rem' }}
             />
-            <button onClick={addTitle} className="btn btn-secondary btn-sm">
+            <button onClick={addTitle} className="btn btn-secondary btn-sm" disabled={!newTitle.trim()}>
               <Plus size={14} /> Add
             </button>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {(settings.target_titles || []).map((title, index) => (
+              <span
+                key={title}
+                className="badge"
+                style={{
+                  background: 'var(--np-bg-secondary)',
+                  border: '1px solid var(--np-border)',
+                  fontSize: '0.78rem',
+                  padding: '5px 10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                {title}
+                <button
+                  type="button"
+                  onClick={() => removeTitle(index)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--np-text-tertiary)' }}
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Save Button */}
-      <div className="animate-fade-in-up" style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-        <button onClick={saveSettings} className="btn btn-primary btn-lg" disabled={saving}>
-          <Save size={18} /> {saving ? 'Saving...' : 'Save Settings'}
+      {/* Action Footer */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+        <button
+          onClick={resetToDefaultFormulas}
+          className="btn btn-ghost btn-sm"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--np-text-tertiary)' }}
+        >
+          <RotateCcw size={14} /> Reset to Defaults
+        </button>
+
+        <button
+          onClick={saveSettings}
+          className="btn btn-primary"
+          disabled={saving}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', fontWeight: 700 }}
+        >
+          <Save size={16} /> {saving ? 'Saving...' : 'Save Configuration'}
         </button>
       </div>
 
-      {/* Toast */}
+      {/* Toast Notification */}
       {toast && (
-        <div className="toast">
+        <div className="toast animate-fade-in-up" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CheckCircle2 size={16} style={{ color: 'var(--np-success)' }} />
-          {toast}
+          <span>{toast}</span>
         </div>
       )}
     </div>

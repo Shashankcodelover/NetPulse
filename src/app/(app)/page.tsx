@@ -207,10 +207,10 @@ export default function DigestPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
-              IMAGINE CUP STAGE 2/7
+              IMAGINE CUP STAGE 3/7
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
-              Offline-First &bull; Zero-Loss Buffer
+              Autonomous Dossiers &bull; Reactive SLA Settings &bull; Smart Importer
             </span>
           </div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>Daily Digest</h1>
