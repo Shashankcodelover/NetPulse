@@ -122,6 +122,7 @@ export function SimulatorModal({ isOpen, onClose, onStateUpdated }: SimulatorMod
           </div>
           <button
             onClick={onClose}
+            aria-label="Close time travel simulator"
             style={{
               background: 'transparent',
               border: 'none',

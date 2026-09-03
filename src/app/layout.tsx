@@ -10,14 +10,25 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("http://shashankj.tech"),
-  title: "NetPulse — Never let a good connection go cold",
+  metadataBase: new URL("https://netpulse.shashankj.tech"),
+  title: "NetPulse CRM — Autonomous Relationship Intelligence (Imagine Cup 2026)",
   description:
-    "Turn your LinkedIn and WhatsApp connections into a prioritized, trackable pipeline. Like a CRM, but for your personal network.",
-  keywords: ["networking", "LinkedIn", "CRM", "contacts", "relationship management"],
+    "Turn your LinkedIn and WhatsApp networks into a prioritized, trackable pipeline with deterministic half-life decay, autonomous dossiers, and multi-channel outreach.",
+  keywords: [
+    "NetPulse",
+    "personal CRM",
+    "relationship management",
+    "algorithmic decay",
+    "Imagine Cup",
+    "TypeScript",
+    "Next.js",
+    "autonomous dossiers",
+    "LinkedIn",
+    "WhatsApp CRM",
+  ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} dark`} suppressHydrationWarning>
       <body>
