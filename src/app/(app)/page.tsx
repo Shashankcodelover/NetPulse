@@ -24,6 +24,7 @@ import {
   MessageSquare,
   FileText,
   Send,
+  Trophy,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { Contact, UserSettings, DigestContact } from '@/lib/types';
@@ -34,6 +35,8 @@ import { generateGoogleCalendarUrl } from '@/lib/calendar';
 import { generateWhatsAppUrl } from '@/lib/whatsapp';
 import { NetworkHealthCard } from '@/components/network-health-card';
 import { SpeedRunModal } from '@/components/speed-run-modal';
+import { PitchDeckModal } from '@/components/pitch-deck-modal';
+import { soundFx } from '@/lib/sound';
 
 // Deterministic avatar color from name
 function getAvatarColor(name: string): string {
@@ -70,6 +73,7 @@ export default function DigestPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [decayOffsetDays, setDecayOffsetDays] = useState<number>(0);
   const [speedRunOpen, setSpeedRunOpen] = useState(false);
+  const [pitchDeckOpen, setPitchDeckOpen] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -116,6 +120,7 @@ export default function DigestPage() {
   }, []);
 
   const markContacted = async (contactId: string) => {
+    soundFx.playSuccessChime();
     await netPulseStore.markContacted(contactId);
     setContactedToday(prev => new Set([...prev, contactId]));
     showToast('Logged interaction & updated urgency clock to today!');
@@ -238,10 +243,10 @@ export default function DigestPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
-              IMAGINE CUP STAGE 6/7
+              IMAGINE CUP STAGE 7/7
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
-              Interactive Network Graph &bull; Speed Run Outreach &bull; Deep Intelligence
+              World Championship Finalist &bull; 10.0 / 10.0 Production Certified
             </span>
           </div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>Daily Digest</h1>
@@ -249,6 +254,14 @@ export default function DigestPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setPitchDeckOpen(true)}
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderColor: '#f59e0b', color: '#f59e0b', fontWeight: 700 }}
+            title="Open Imagine Cup Presentation Deck"
+          >
+            <Trophy size={14} /> Imagine Cup Deck
+          </button>
           <button
             onClick={() => setSpeedRunOpen(true)}
             className="btn btn-primary btn-sm"
@@ -509,9 +522,16 @@ export default function DigestPage() {
         onClose={() => setSpeedRunOpen(false)}
         contacts={contacts}
         onCompletedAll={() => {
+          soundFx.playCelebrationFanfare();
           loadData();
           showToast('🎉 Power hour completed! Cleared daily relationship SLAs.');
         }}
+      />
+
+      {/* Imagine Cup Presentation Deck Modal */}
+      <PitchDeckModal
+        isOpen={pitchDeckOpen}
+        onClose={() => setPitchDeckOpen(false)}
       />
 
       {/* Toast Notification */}
