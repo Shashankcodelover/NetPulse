@@ -32,6 +32,8 @@ import {
 import { format, formatDistanceToNow } from 'date-fns';
 import { netPulseStore } from '@/lib/storage/db';
 import { generateGoogleCalendarUrl } from '@/lib/calendar';
+import { generateWhatsAppUrl } from '@/lib/whatsapp';
+import { EnrichmentModal } from '@/components/enrichment-modal';
 import { calculatePriorityScore, isContactOverdue, getSuggestedReason } from '@/lib/scoring';
 import { DEFAULT_SETTINGS } from '@/lib/types';
 import type { Contact, Interaction, RelationshipTier, InteractionType, UserSettings } from '@/lib/types';
@@ -78,6 +80,7 @@ export default function ContactDetailPage() {
   const [logSummary, setLogSummary] = useState('');
   const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
   const [savingLog, setSavingLog] = useState(false);
+  const [showEnrichModal, setShowEnrichModal] = useState(false);
 
   // Inline Quick Note State
   const [newNote, setNewNote] = useState('');
@@ -380,6 +383,16 @@ export default function ContactDetailPage() {
               </div>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {/* 10-Sec Quick Enrich */}
+                <button
+                  onClick={() => setShowEnrichModal(true)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  title="10-Second Quick Enrichment"
+                >
+                  <Sparkles size={14} /> 10-Sec Enrich
+                </button>
+
                 {/* Log Touchpoint Trigger */}
                 <button
                   onClick={() => setShowTouchpointModal(true)}
@@ -388,6 +401,18 @@ export default function ContactDetailPage() {
                 >
                   <Plus size={14} /> Log Touchpoint
                 </button>
+
+                {/* 1-Click WhatsApp Outreach */}
+                <a
+                  href={generateWhatsAppUrl({ contact })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)' }}
+                  title="Open WhatsApp Outreach"
+                >
+                  <MessageSquare size={14} /> WhatsApp
+                </a>
 
                 {/* 1-Click Smart Calendar */}
                 <a
@@ -400,7 +425,7 @@ export default function ContactDetailPage() {
                   className="btn btn-secondary btn-sm"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  <Calendar size={14} /> Schedule Meeting
+                  <Calendar size={14} /> Meet
                 </a>
 
                 {/* Edit Button */}
@@ -615,6 +640,18 @@ export default function ContactDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* 10-Second Quick Enrichment Station Modal */}
+      <EnrichmentModal
+        contact={contact}
+        isOpen={showEnrichModal}
+        onClose={() => setShowEnrichModal(false)}
+        onEnriched={updated => {
+          setContact(updated);
+          setEditData(updated);
+          showToast('Contact enriched & priority score recalibrated!');
+        }}
+      />
 
       {/* Touchpoint Modal */}
       {showTouchpointModal && (

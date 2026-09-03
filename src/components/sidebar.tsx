@@ -19,6 +19,7 @@ import {
   X,
   LogOut,
   Kanban,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import { createClient } from '@/lib/supabase/client';
@@ -29,6 +30,7 @@ const navItems = [
   { href: '/', label: 'Digest', icon: Zap },
   { href: '/pipeline', label: 'Pipeline', icon: Kanban },
   { href: '/contacts', label: 'Contacts', icon: Users },
+  { href: '/triage', label: 'Triage', icon: Sparkles },
   { href: '/import', label: 'Import', icon: Upload },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/settings', label: 'Settings', icon: Settings },
