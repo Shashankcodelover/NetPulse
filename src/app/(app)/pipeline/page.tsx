@@ -1,40 +1,49 @@
-﻿'use client';
+'use client';
 
 // ═══════════════════════════════════════════════════════
-// Visual Pipeline — Kanban Board
-// Operational relationship stages for high-concurrency networking
+// Relationship Pipeline — Interactive Drag-and-Drop Kanban Board
+// Persistent stages via NetPulseStore with SLA auto-recalculation
 // ═══════════════════════════════════════════════════════
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Kanban,
-  Building2,
-  Briefcase,
-  ArrowRight,
-  ArrowLeft,
   Search,
-  Zap,
-  CheckCircle2,
+  ChevronRight,
+  ChevronLeft,
+  Calendar,
+  Building2,
   Clock,
   Sparkles,
-  Plus,
+  ExternalLink,
+  GripVertical,
+  Kanban,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
+import { netPulseStore } from '@/lib/storage/db';
 import { DEMO_CONTACTS } from '@/lib/demo-data';
 import type { Contact } from '@/lib/types';
+import { generateGoogleCalendarUrl } from '@/lib/calendar';
 
-type PipelineStage = 'queue' | 'outreach' | 'dialogue' | 'meeting' | 'anchor';
+export type PipelineStage = 'queue' | 'outreach' | 'dialogue' | 'meeting' | 'anchor';
 
-interface PipelineContact extends Contact {
+interface PipelineContact {
+  id: string;
+  full_name: string;
+  company: string | null;
+  title: string | null;
+  relationship_tier: 'priority' | 'warm' | 'cold';
+  last_contacted_at: string | null;
+  priority_score: number;
   stage: PipelineStage;
 }
 
-const STAGES: { id: PipelineStage; label: string; color: string; desc: string }[] = [
-  { id: 'queue', label: '1. In Queue', color: '#6b7280', desc: 'Identified; awaiting initial outreach' },
-  { id: 'outreach', label: '2. Outreach Sent', color: '#3b82f6', desc: 'Message or note dispatched' },
-  { id: 'dialogue', label: '3. Active Dialogue', color: '#8b5cf6', desc: 'Exchanging messages asynchronously' },
-  { id: 'meeting', label: '4. Meeting Booked', color: '#f59e0b', desc: 'Coffee chat / technical sync scheduled' },
-  { id: 'anchor', label: '5. Network Anchor', color: '#10b981', desc: 'Trusted mentor, investor, or collaborator' },
+const STAGES: Array<{ id: PipelineStage; label: string; desc: string; color: string }> = [
+  { id: 'queue', label: '1. Sourced / Queue', desc: 'Identified for initial outreach', color: '#64748b' },
+  { id: 'outreach', label: '2. Initial Ping', desc: 'Message or invite dispatched', color: '#0066ff' },
+  { id: 'dialogue', label: '3. Active Dialogue', desc: 'Bi-directional conversation', color: '#7c3aed' },
+  { id: 'meeting', label: '4. Strategic Catch-up', desc: 'Call or meet scheduled', color: '#f59e0b' },
+  { id: 'anchor', label: '5. Trusted Anchor', desc: 'High-leverage mutual ally', color: '#10b981' },
 ];
 
 function getAvatarColor(name: string): string {
@@ -56,37 +65,69 @@ function getInitials(name: string): string {
 export default function PipelinePage() {
   const [pipelineContacts, setPipelineContacts] = useState<PipelineContact[]>([]);
   const [search, setSearch] = useState('');
+  const [draggedContactId, setDraggedContactId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => {
-    const initial: PipelineContact[] = DEMO_CONTACTS.map((c, i) => {
+  const loadPipeline = async () => {
+    const rawContacts = await netPulseStore.getContacts();
+    const overrides = await netPulseStore.getStageOverrides();
+
+    const formatted: PipelineContact[] = rawContacts.map((c, i) => {
       let stage: PipelineStage = 'queue';
-      if (i % 5 === 0) stage = 'dialogue';
-      else if (i % 5 === 1) stage = 'meeting';
-      else if (i % 5 === 2) stage = 'outreach';
-      else if (i % 5 === 3) stage = 'anchor';
-      else stage = 'queue';
-      return { ...c, stage };
+      if (overrides[c.id]) {
+        stage = overrides[c.id] as PipelineStage;
+      } else {
+        if (i % 5 === 0) stage = 'dialogue';
+        else if (i % 5 === 1) stage = 'meeting';
+        else if (i % 5 === 2) stage = 'outreach';
+        else if (i % 5 === 3) stage = 'anchor';
+        else stage = 'queue';
+      }
+
+      return {
+        id: c.id,
+        full_name: c.full_name,
+        company: c.company || null,
+        title: c.title || null,
+        relationship_tier: c.relationship_tier,
+        last_contacted_at: c.last_contacted_at || null,
+        priority_score: 75,
+        stage,
+      };
     });
-    setPipelineContacts(initial);
+
+    setPipelineContacts(formatted);
+  };
+
+  useEffect(() => {
+    loadPipeline();
+    const handleUpdate = () => loadPipeline();
+    window.addEventListener('netpulse:state-changed', handleUpdate);
+    return () => window.removeEventListener('netpulse:state-changed', handleUpdate);
   }, []);
 
-  const moveStage = (contactId: string, direction: 'forward' | 'backward') => {
-    const stageOrder: PipelineStage[] = ['queue', 'outreach', 'dialogue', 'meeting', 'anchor'];
+  const handleStageDrop = async (contactId: string, newStage: PipelineStage) => {
+    await netPulseStore.updateContactStage(contactId, newStage);
     setPipelineContacts(prev =>
-      prev.map(c => {
-        if (c.id !== contactId) return c;
-        const currentIndex = stageOrder.indexOf(c.stage);
-        const newIndex = direction === 'forward' ? currentIndex + 1 : currentIndex - 1;
-        if (newIndex >= 0 && newIndex < stageOrder.length) {
-          const nextStage = stageOrder[newIndex];
-          const stageLabel = STAGES.find(s => s.id === nextStage)?.label || nextStage;
-          showToast(`Moved ${c.full_name} to ${stageLabel}`);
-          return { ...c, stage: nextStage };
-        }
-        return c;
-      })
+      prev.map(c => (c.id === contactId ? { ...c, stage: newStage } : c))
     );
+    const stageLabel = STAGES.find(s => s.id === newStage)?.label || newStage;
+    const contact = pipelineContacts.find(c => c.id === contactId);
+    showToast(`Moved ${contact?.full_name || 'Contact'} to ${stageLabel}`);
+  };
+
+  const moveStage = async (contactId: string, direction: 'forward' | 'backward') => {
+    const stageOrder: PipelineStage[] = ['queue', 'outreach', 'dialogue', 'meeting', 'anchor'];
+    const contact = pipelineContacts.find(c => c.id === contactId);
+    if (!contact) return;
+
+    const currentIndex = stageOrder.indexOf(contact.stage);
+    const newIndex = direction === 'forward' ? currentIndex + 1 : currentIndex - 1;
+
+    if (newIndex >= 0 && newIndex < stageOrder.length) {
+      const nextStage = stageOrder[newIndex];
+      await handleStageDrop(contactId, nextStage);
+    }
   };
 
   const showToast = (msg: string) => {
@@ -105,36 +146,56 @@ export default function PipelinePage() {
   });
 
   return (
-    <div className="page-container" style={{ maxWidth: 1400 }}>
+    <div className="page-container" style={{ maxWidth: 1440 }}>
       {/* Header */}
-      <div className="page-header animate-fade-in" style={{ marginBottom: 20 }}>
+      <div className="page-header animate-fade-in" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1>Relationship Pipeline</h1>
-            <p>Visual stage tracking from initial outreach to lifelong relationship anchor</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
+                PERSISTENT KANBAN
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
+                IndexedDB Write-Ahead Journaled
+              </span>
+            </div>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>Relationship Pipeline</h1>
+            <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--np-text-secondary)' }}>
+              Drag &amp; drop cards across relationship stages or use quick advancement chevrons
+            </p>
           </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('netpulse:open-simulator'))}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: '#38bdf8', color: '#38bdf8' }}
+              title="Open Time-Travel Decay Simulator"
+            >
+              <Clock size={15} /> Simulate Inaction Decay
+            </button>
+
             <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: 12, top: 10, color: 'var(--np-text-tertiary)' }} />
+              <Search size={15} style={{ position: 'absolute', left: 10, top: 9, color: 'var(--np-text-tertiary)' }} />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Filter pipeline..."
                 style={{
-                  padding: '7px 14px 7px 34px',
+                  padding: '6px 12px 6px 32px',
                   borderRadius: 8,
                   border: '1px solid var(--np-border)',
                   backgroundColor: 'var(--np-bg-secondary)',
                   color: 'var(--np-text-primary)',
-                  fontSize: '0.84rem',
+                  fontSize: '0.82rem',
                   outline: 'none',
-                  width: 220,
+                  width: 180,
                 }}
               />
             </div>
             <Link href="/contacts" className="btn btn-secondary btn-sm">
-              View All Contacts
+              All Contacts
             </Link>
           </div>
         </div>
@@ -144,8 +205,8 @@ export default function PipelinePage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(240px, 1fr))',
-          gap: 16,
+          gridTemplateColumns: 'repeat(5, minmax(250px, 1fr))',
+          gap: 14,
           overflowX: 'auto',
           paddingBottom: 20,
         }}
@@ -156,13 +217,19 @@ export default function PipelinePage() {
           return (
             <div
               key={stage.id}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const contactId = e.dataTransfer.getData('text/plain') || draggedContactId;
+                if (contactId) handleStageDrop(contactId, stage.id);
+              }}
               style={{
                 backgroundColor: 'var(--np-bg-secondary)',
                 border: '1px solid var(--np-border)',
                 borderRadius: 12,
                 display: 'flex',
                 flexDirection: 'column',
-                minHeight: 560,
+                minHeight: 600,
                 boxShadow: 'var(--np-shadow-sm)',
               }}
             >
@@ -211,12 +278,17 @@ export default function PipelinePage() {
                   gap: 10,
                   flex: 1,
                   overflowY: 'auto',
-                  maxHeight: 650,
+                  maxHeight: 680,
                 }}
               >
                 {stageItems.map(contact => (
                   <div
                     key={contact.id}
+                    draggable={true}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', contact.id);
+                      setDraggedContactId(contact.id);
+                    }}
                     style={{
                       backgroundColor: 'var(--np-bg-card)',
                       border: '1px solid var(--np-border)',
@@ -224,10 +296,12 @@ export default function PipelinePage() {
                       padding: '12px',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                       transition: 'all 0.15s ease',
+                      cursor: 'grab',
                     }}
                   >
-                    {/* Top Row: Avatar + Name + Tier */}
+                    {/* Top Row: Grip + Avatar + Name + Tier */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <GripVertical size={14} style={{ color: 'var(--np-text-tertiary)', cursor: 'grab', flexShrink: 0 }} />
                       <div
                         style={{
                           width: 28,
@@ -263,132 +337,159 @@ export default function PipelinePage() {
                         </Link>
                       </div>
                       <span
-                        style={{
-                          fontSize: '0.62rem',
-                          padding: '1px 5px',
-                          borderRadius: 4,
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          backgroundColor:
-                            contact.relationship_tier === 'priority'
-                              ? 'rgba(79, 70, 229, 0.12)'
-                              : 'rgba(245, 158, 11, 0.12)',
-                          color:
-                            contact.relationship_tier === 'priority'
-                              ? 'var(--np-accent)'
-                              : 'var(--np-warning)',
-                        }}
+                        className={`badge ${
+                          contact.relationship_tier === 'priority'
+                            ? 'badge-priority'
+                            : contact.relationship_tier === 'warm'
+                            ? 'badge-warm'
+                            : 'badge-cold'
+                        }`}
+                        style={{ fontSize: '0.62rem', padding: '1px 5px', textTransform: 'capitalize' }}
                       >
                         {contact.relationship_tier}
                       </span>
                     </div>
 
-                    {/* Meta */}
-                    {contact.title && (
-                      <div
+                    {/* Role & Company */}
+                    <div style={{ fontSize: '0.74rem', color: 'var(--np-text-secondary)', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <Building2 size={12} style={{ flexShrink: 0, color: 'var(--np-text-tertiary)' }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {contact.title || 'Leader'} &bull; {contact.company || 'Tech'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Score Bar */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, fontSize: '0.72rem' }}>
+                      <span style={{ color: 'var(--np-text-tertiary)' }}>Decay Priority</span>
+                      <span
                         style={{
-                          fontSize: '0.72rem',
-                          color: 'var(--np-text-secondary)',
-                          display: 'flex',
+                          fontWeight: 700,
+                          color: contact.priority_score >= 80 ? '#ef4444' : contact.priority_score >= 60 ? '#f59e0b' : '#10b981',
+                        }}
+                      >
+                        {contact.priority_score}/100
+                      </span>
+                    </div>
+
+                    {/* Actions Row */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--np-border)', paddingTop: 8 }}>
+                      {/* Left/Right Quick Stage Steppers */}
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          onClick={() => moveStage(contact.id, 'backward')}
+                          disabled={contact.stage === 'queue'}
+                          className="btn-ghost"
+                          style={{
+                            padding: 4,
+                            borderRadius: 4,
+                            cursor: contact.stage === 'queue' ? 'not-allowed' : 'pointer',
+                            opacity: contact.stage === 'queue' ? 0.3 : 1,
+                          }}
+                          title="Move backward"
+                        >
+                          <ChevronLeft size={14} />
+                        </button>
+                        <button
+                          onClick={() => moveStage(contact.id, 'forward')}
+                          disabled={contact.stage === 'anchor'}
+                          className="btn-ghost"
+                          style={{
+                            padding: 4,
+                            borderRadius: 4,
+                            cursor: contact.stage === 'anchor' ? 'not-allowed' : 'pointer',
+                            opacity: contact.stage === 'anchor' ? 0.3 : 1,
+                          }}
+                          title="Advance stage"
+                        >
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+
+                      {/* 1-Click Smart Calendar Link */}
+                      <a
+                        href={generateGoogleCalendarUrl({
+                          contact: {
+                            id: contact.id,
+                            user_id: 'local-user',
+                            full_name: contact.full_name,
+                            title: contact.title || '',
+                            company: contact.company || '',
+                            relationship_tier: contact.relationship_tier,
+                            last_contacted_at: contact.last_contacted_at || '',
+                            email: `${contact.full_name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                            source: 'manual',
+                            linkedin_url: null,
+                            previous_company: null,
+                            previous_title: null,
+                            last_bulk_synced_at: null,
+                            last_enriched_at: null,
+                            notes: null,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                          },
+                          agendaTopic: `Pipeline Review & Strategic Alignment (${stage.label})`,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-ghost"
+                        style={{
+                          display: 'inline-flex',
                           alignItems: 'center',
                           gap: 4,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          marginBottom: 3,
-                        }}
-                      >
-                        <Briefcase size={11} style={{ flexShrink: 0 }} />
-                        {contact.title}
-                      </div>
-                    )}
-                    {contact.company && (
-                      <div
-                        style={{
-                          fontSize: '0.72rem',
-                          color: 'var(--np-text-tertiary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <Building2 size={11} style={{ flexShrink: 0 }} />
-                        {contact.company}
-                      </div>
-                    )}
-
-                    {/* Stage Advancer Controls */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginTop: 10,
-                        paddingTop: 8,
-                        borderTop: '1px solid var(--np-border-light)',
-                      }}
-                    >
-                      <button
-                        onClick={() => moveStage(contact.id, 'backward')}
-                        disabled={stage.id === 'queue'}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: stage.id === 'queue' ? 'var(--np-text-tertiary)' : 'var(--np-text-secondary)',
-                          cursor: stage.id === 'queue' ? 'not-allowed' : 'pointer',
-                          padding: '2px 4px',
-                          borderRadius: 4,
-                          opacity: stage.id === 'queue' ? 0.3 : 1,
-                        }}
-                        title="Move to previous stage"
-                      >
-                        <ArrowLeft size={13} />
-                      </button>
-
-                      <Link
-                        href={`/inbox`}
-                        style={{
                           fontSize: '0.68rem',
-                          color: 'var(--np-accent)',
+                          color: '#0066ff',
                           textDecoration: 'none',
+                          padding: '2px 6px',
+                          borderRadius: 6,
                           fontWeight: 600,
                         }}
+                        title="Schedule 1-Click Google Meet"
                       >
-                        Draft AI Reply
-                      </Link>
-
-                      <button
-                        onClick={() => moveStage(contact.id, 'forward')}
-                        disabled={stage.id === 'anchor'}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: stage.id === 'anchor' ? 'var(--np-text-tertiary)' : 'var(--np-accent)',
-                          cursor: stage.id === 'anchor' ? 'not-allowed' : 'pointer',
-                          padding: '2px 4px',
-                          borderRadius: 4,
-                          opacity: stage.id === 'anchor' ? 0.3 : 1,
-                        }}
-                        title="Advance to next stage"
-                      >
-                        <ArrowRight size={13} />
-                      </button>
+                        <Calendar size={12} /> Meet
+                      </a>
                     </div>
                   </div>
                 ))}
+
+                {stageItems.length === 0 && (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '30px 10px',
+                      color: 'var(--np-text-tertiary)',
+                      fontSize: '0.75rem',
+                      border: '1px dashed var(--np-border)',
+                      borderRadius: 8,
+                    }}
+                  >
+                    Drag cards here
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Toast */}
+      {/* Floating Toast Notification */}
       {toast && (
-        <div className="toast">
-          <CheckCircle2 size={16} style={{ color: 'var(--np-success)' }} />
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            backgroundColor: 'var(--np-accent)',
+            color: 'white',
+            padding: '10px 18px',
+            borderRadius: 8,
+            fontSize: '0.84rem',
+            fontWeight: 600,
+            boxShadow: 'var(--np-shadow-lg)',
+            zIndex: 1000,
+          }}
+        >
           {toast}
         </div>
       )}

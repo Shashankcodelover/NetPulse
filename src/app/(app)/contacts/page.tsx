@@ -40,6 +40,8 @@ function getInitials(name: string): string {
 type SortField = 'name' | 'company' | 'last_contacted';
 type SortDir = 'asc' | 'desc';
 
+import { netPulseStore } from '@/lib/storage/db';
+
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,56 +50,17 @@ export default function ContactsPage() {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  const supabase = createClient();
-
   useEffect(() => {
     async function load() {
-      if (typeof window !== 'undefined' && localStorage.getItem('netplus_demo_mode') === 'true') {
-        setContacts(DEMO_CONTACTS);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          // If unauthenticated or sandbox requested
-          if (typeof window !== 'undefined' && localStorage.getItem('netplus_demo_mode') === 'true') {
-            setContacts(DEMO_CONTACTS);
-          } else {
-            setContacts([]);
-          }
-          setLoading(false);
-          return;
-        }
-
-        const { data } = await supabase
-          .from('contacts')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('full_name');
-
-        if (!data || data.length === 0) {
-          if (typeof window !== 'undefined' && localStorage.getItem('netplus_demo_mode') === 'true') {
-            setContacts(DEMO_CONTACTS);
-          } else {
-            setContacts([]);
-          }
-        } else {
-          setContacts(data);
-        }
-      } catch {
-        if (typeof window !== 'undefined' && localStorage.getItem('netplus_demo_mode') === 'true') {
-          setContacts(DEMO_CONTACTS);
-        } else {
-          setContacts([]);
-        }
-      } finally {
-        setLoading(false);
-      }
+      const data = await netPulseStore.getContacts();
+      setContacts(data);
+      setLoading(false);
     }
     load();
-  }, [supabase]);
+    const handleUpdate = () => load();
+    window.addEventListener('netpulse:state-changed', handleUpdate);
+    return () => window.removeEventListener('netpulse:state-changed', handleUpdate);
+  }, []);
 
   const filtered = useMemo(() => {
     let result = contacts;

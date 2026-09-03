@@ -33,14 +33,16 @@ const MID_VALUE_TITLES = [
 function calculateRecencyScore(
   lastContactedAt: string | null,
   tier: string,
-  settings: Pick<UserSettings, 'cadence_priority_days' | 'cadence_warm_days' | 'cadence_cold_days'>
+  settings: Pick<UserSettings, 'cadence_priority_days' | 'cadence_warm_days' | 'cadence_cold_days'>,
+  offsetDays: number = 0
 ): number {
   if (!lastContactedAt) {
     // Never contacted — maximum urgency
     return 100;
   }
 
-  const daysSince = differenceInDays(new Date(), new Date(lastContactedAt));
+  const simulatedDate = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
+  const daysSince = differenceInDays(simulatedDate, new Date(lastContactedAt));
 
   if (daysSince < 0) return 0; // Future scheduled contact — not overdue
 
@@ -142,7 +144,8 @@ function getCompanyBonus(company: string | null, targetCompanies: string[]): num
 export function calculatePriorityScore(
   contact: Contact,
   interactionCount: number,
-  settings: UserSettings
+  settings: UserSettings,
+  offsetDays: number = 0
 ): Omit<PriorityScore, 'id' | 'contact_id' | 'user_id' | 'last_calculated_at'> {
   const weights = settings?.scoring_weights || { recency_weight: 35, tier_weight: 25, title_weight: 20, engagement_weight: 20 };
   const targetTitles = settings?.target_titles || [];
@@ -151,7 +154,7 @@ export function calculatePriorityScore(
     weights.title_weight + weights.engagement_weight;
 
   // Calculate each sub-score
-  const recency = calculateRecencyScore(contact.last_contacted_at, contact.relationship_tier, settings);
+  const recency = calculateRecencyScore(contact.last_contacted_at, contact.relationship_tier, settings, offsetDays);
   const tier = calculateTierScore(contact.relationship_tier);
   const title = calculateTitleScore(contact.title, targetTitles);
   const engagement = calculateEngagementScore(interactionCount);
@@ -185,13 +188,15 @@ export function calculatePriorityScore(
 export function getSuggestedReason(
   contact: Contact,
   score: number,
-  settings: UserSettings
+  settings: UserSettings,
+  offsetDays: number = 0
 ): string {
   if (!contact.last_contacted_at) {
     return "You've never reached out — time to break the ice";
   }
 
-  const daysSince = differenceInDays(new Date(), new Date(contact.last_contacted_at));
+  const simulatedDate = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
+  const daysSince = differenceInDays(simulatedDate, new Date(contact.last_contacted_at));
 
   let targetDays: number;
   switch (contact.relationship_tier) {
@@ -200,33 +205,16 @@ export function getSuggestedReason(
     default: targetDays = settings.cadence_cold_days;
   }
 
-  if (daysSince > targetDays * 2) {
-    return `${daysSince} days since last contact — relationship going cold`;
+  if (daysSince > targetDays * 1.5) {
+    return `Critical: Overdue by ${daysSince - targetDays} days (${daysSince}d since contact)`;
   }
-  if (daysSince > targetDays) {
-    return `Overdue by ${daysSince - targetDays} days`;
+  if (daysSince >= targetDays) {
+    return `Cadence due: Reached your ${targetDays}-day target`;
   }
-
-  // Check if it's a high-value title
-  if (contact.title) {
-    const lowerTitle = contact.title.toLowerCase();
-    for (const t of HIGH_VALUE_TITLES) {
-      if (lowerTitle.includes(t)) {
-        return `Key decision-maker at ${contact.company || 'their company'}`;
-      }
-    }
+  if (score >= 80) {
+    return `High value: Strategic decision maker at ${contact.company || 'target firm'}`;
   }
-
-  // Check target company
-  if (contact.company && settings.target_companies.some(tc =>
-    contact.company!.toLowerCase().includes(tc.toLowerCase())
-  )) {
-    return `Works at target company: ${contact.company}`;
-  }
-
-  if (score >= 80) return 'High priority — due for follow-up';
-  if (score >= 60) return `${daysSince} days since last contact`;
-  return 'Routine check-in recommended';
+  return `Keep warm: ${daysSince} days since last interaction`;
 }
 
 /**
@@ -234,11 +222,13 @@ export function getSuggestedReason(
  */
 export function isContactOverdue(
   contact: Contact,
-  settings: Pick<UserSettings, 'cadence_priority_days' | 'cadence_warm_days' | 'cadence_cold_days'>
+  settings: Pick<UserSettings, 'cadence_priority_days' | 'cadence_warm_days' | 'cadence_cold_days'>,
+  offsetDays: number = 0
 ): boolean {
   if (!contact.last_contacted_at) return true;
 
-  const daysSince = differenceInDays(new Date(), new Date(contact.last_contacted_at));
+  const simulatedDate = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
+  const daysSince = differenceInDays(simulatedDate, new Date(contact.last_contacted_at));
   let targetDays: number;
 
   switch (contact.relationship_tier) {

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 // ═══════════════════════════════════════════════════════
 // PulseBot — Autonomous AI Networking Copilot
@@ -21,6 +21,9 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { DEMO_CONTACTS } from '@/lib/demo-data';
+import { netPulseStore } from '@/lib/storage/db';
+import { isContactOverdue } from '@/lib/scoring';
+import { DEFAULT_SETTINGS } from '@/lib/types';
 
 interface Message {
   id: string;
@@ -62,98 +65,70 @@ export function PulseBot() {
     setTimeout(() => setCopiedId(null), 2500);
   };
 
-  const handleAction = (action: string) => {
+  const handleAction = async (action: string) => {
     if (action === 'audit') {
       addUserMessage('Audit my overall network health.');
       setIsTyping(true);
-      setTimeout(() => {
-        setIsTyping(false);
-        setMessages(prev => [
-          ...prev,
-          {
-            id: String(Date.now()),
-            sender: 'bot',
-            text: "📊 Network Health Diagnostic:\n• Portfolio Size: 25 High-Caliber Industry Contacts\n• Priority Tier (Tier 1): 5 Key Relationships (14-day cadence)\n• Warm Tier (Tier 2): 6 Tactical Allies (30-day cadence)\n• Cold / Mentors (Tier 3): 1 Contact\n• Current Decay Risk: ⚠️ 72% of Priority relationships are past SLA threshold.\n\n🔥 Top 3 Urgent Action Items:\n1. Dr. Elena Rostova (Google DeepMind) — 42 days cold (28 days past 14d SLA).\n2. Marcus Vance (Benchmark Capital) — 35 days cold (21 days past SLA).\n3. Aria Chen (Stripe) — 28 days cold (14 days past SLA).",
-            timestamp: 'Just now',
-            quickActions: [
-              { label: '✍️ Draft Outreach to Marcus Vance', action: 'draft_marcus' },
-              { label: '✍️ Draft Outreach to Elena Rostova', action: 'draft_elena' },
-            ],
-          },
-        ]);
-      }, 700);
-    } else if (action === 'vcs') {
-      addUserMessage('Show me top VCs and technical decision-makers who need follow-ups.');
+
+      const contacts = await netPulseStore.getContacts();
+      const offsetDays = await netPulseStore.getDecayOffsetDays();
+      const overdue = contacts.filter(c => isContactOverdue(c, DEFAULT_SETTINGS, offsetDays));
+      const priorityOverdue = overdue.filter(c => c.relationship_tier === 'priority');
+
+      setIsTyping(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: String(Date.now()),
+          sender: 'bot',
+          text: `📊 Live Network Health Audit:\n• Total Contacts: ${contacts.length} Industry Leaders\n• Overdue Contacts: ${overdue.length} (${Math.round((overdue.length / contacts.length) * 100)}% of network)\n• Priority Tier SLA Breaches: ${priorityOverdue.length}\n• Temporal Horizon: ${offsetDays > 0 ? `+${offsetDays} Days Simulated Decay` : 'Real-time Baseline'}\n\n🔥 Immediate Recommended Interventions:\n${overdue.slice(0, 3).map((c, i) => `${i + 1}. ${c.full_name} (${c.company || 'Enterprise'}) — Recency Urgent`).join('\n')}`,
+          timestamp: 'Just now',
+          quickActions: [
+            { label: '✍️ Draft Reconnect for Top Priority', action: 'draft_top' },
+            { label: '⏱️ Open Decay Simulator', action: 'open_sim' },
+          ],
+        },
+      ]);
+    } else if (action === 'draft_top' || action === 'draft_elena' || action === 'draft_marcus') {
+      const targetName = action === 'draft_marcus' ? 'Marcus Vance' : 'Dr. Elena Rostova';
+      addUserMessage(`Draft reconnect options for ${targetName}.`);
       setIsTyping(true);
-      setTimeout(() => {
+
+      try {
+        const res = await fetch('/api/ai/draft-reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceText: action === 'draft_marcus' 
+              ? 'Completed production benchmarks on NetPulse distributed write-ahead persistence.'
+              : 'Recent work on autonomous agent state graphs and resilient failure recovery.',
+            contactName: targetName,
+            contactCompany: action === 'draft_marcus' ? 'Benchmark Capital' : 'Google DeepMind',
+            contactRole: action === 'draft_marcus' ? 'General Partner' : 'Principal Research Scientist',
+            tier: 'priority',
+          }),
+        });
+
+        const data = await res.json();
         setIsTyping(false);
-        setMessages(prev => [
-          ...prev,
-          {
-            id: String(Date.now()),
-            sender: 'bot',
-            text: "🎯 Top Decision-Makers in Your Active Pipeline:\n• Marcus Vance (General Partner @ Benchmark Capital)\n  Focus: Enterprise Infra & Offline Systems | Status: 35d cold (Score: 88)\n• Kavita Nair (Vice President @ Sequoia Capital Peak XV)\n  Focus: DeepTech & Agentic AI | Status: 32d cold (Score: 86)\n• Aria Chen (Engineering Director @ Stripe)\n  Focus: Distributed Payments Core | Status: 28d cold (Score: 88)",
-            timestamp: 'Just now',
-            quickActions: [
-              { label: '✍️ Generate Pitch Update for Marcus', action: 'draft_marcus' },
-            ],
-          },
-        ]);
-      }, 700);
-    } else if (action === 'draft_elena') {
-      addUserMessage('Draft a contextual reconnect message for Dr. Elena Rostova.');
-      setIsTyping(true);
-      setTimeout(() => {
+
+        if (data.success && data.drafts) {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: String(Date.now()),
+              sender: 'bot',
+              text: `Synthesized 3 reconnection angles for ${targetName} (via ${data.source}):`,
+              timestamp: 'Just now',
+              drafts: data.drafts.map((d: { label: string; text: string }) => ({ angle: d.label, text: d.text })),
+            },
+          ]);
+        }
+      } catch {
         setIsTyping(false);
-        setMessages(prev => [
-          ...prev,
-          {
-            id: String(Date.now()),
-            sender: 'bot',
-            text: 'Here are 3 contextual outreach angles tailored to Dr. Elena Rostova (Principal Research Scientist @ Google DeepMind), referencing your previous discussion on LangGraph state orchestrators:',
-            timestamp: 'Just now',
-            drafts: [
-              {
-                angle: 'Angle A: Insight-Driven Technical Follow-up (Recommended)',
-                text: 'Hi Dr. Elena, I was reflecting on our conversation at the Agentic AI Summit regarding StateGraph error boundaries. We recently implemented an offline-first event queue that idempotently reconciles transient failures during edge execution. Would love to share a 2-minute architectural demo if you have a moment next week!',
-              },
-              {
-                angle: 'Angle B: Quick Low-Friction Catchup',
-                text: 'Hi Elena! Hope you are doing well at DeepMind. Noticed your team’s recent publications on foundation model reasoning benchmarks — incredible work. Would love to grab a brief 15-minute virtual coffee sometime this month to catch up on what you are building.',
-              },
-              {
-                angle: 'Angle C: Imagine Cup & Research Collaboration Ask',
-                text: 'Hi Elena, I hope all is great with you. I am currently advancing our hyper-resilient distributed communications project for the Microsoft Imagine Cup. Given your expertise in resilient agent pipelines, I would be deeply grateful for 10 minutes of your feedback on our consensus topology.',
-              },
-            ],
-          },
-        ]);
-      }, 900);
-    } else if (action === 'draft_marcus') {
-      addUserMessage('Draft a high-intent update for Marcus Vance at Benchmark.');
-      setIsTyping(true);
-      setTimeout(() => {
-        setIsTyping(false);
-        setMessages(prev => [
-          ...prev,
-          {
-            id: String(Date.now()),
-            sender: 'bot',
-            text: 'Here are 2 investor-ready outreach angles for Marcus Vance (General Partner @ Benchmark Capital):',
-            timestamp: 'Just now',
-            drafts: [
-              {
-                angle: 'Angle 1: Telemetry & Milestone Update (Highest Response Rate)',
-                text: 'Hi Marcus, Following up on our chat regarding enterprise infrastructure telemetry: we just completed live production benchmarking on NetPulse, achieving zero-error 200 OK throughput and client-side deterministic scoring with sub-millisecond latency. Attached our architecture teardown — would love to share a quick 10-minute briefing if you have bandwidth this Thursday.',
-              },
-              {
-                angle: 'Angle 2: Quick Direct Query',
-                text: 'Hi Marcus, hope all is well at Benchmark. We are locking in our technical architecture deck ahead of the Imagine Cup and wanted to check if you had 10 minutes for a quick advisor perspective on our distributed sync engine.',
-              },
-            ],
-          },
-        ]);
-      }, 900);
+      }
+    } else if (action === 'open_sim') {
+      window.dispatchEvent(new CustomEvent('netpulse:open-simulator'));
     }
   };
 
@@ -169,7 +144,7 @@ export function PulseBot() {
     ]);
   };
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
@@ -178,35 +153,55 @@ export function PulseBot() {
     addUserMessage(userText);
     setIsTyping(true);
 
-    setTimeout(() => {
+    try {
+      // Query draft-reply endpoint with full relationship prompt
+      const res = await fetch('/api/ai/draft-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceText: userText,
+          contactName: 'Strategic Partner',
+          contactCompany: 'Technology Leadership',
+          contactRole: 'Executive',
+          tier: 'priority',
+        }),
+      });
+
+      const data = await res.json();
       setIsTyping(false);
-      const lower = userText.toLowerCase();
-      let responseText = "I've analyzed your request across your relationship graph. ";
 
-      if (lower.includes('pitch') || lower.includes('investor') || lower.includes('vc')) {
-        responseText += "For investors like Marcus Vance and Kavita Nair, prioritize concise metric milestones: latency reduction, active users, and architectural differentiation. Avoid asking for general advice; ask for feedback on a specific hypothesis.";
-      } else if (lower.includes('elena') || lower.includes('deepmind') || lower.includes('ai')) {
-        responseText += "Dr. Elena Rostova values rigorous technical citations and StateGraph robustness. I recommend sharing our idempotent queue benchmarks.";
-      } else if (lower.includes('referral') || lower.includes('job') || lower.includes('interview')) {
-        responseText += "When seeking referrals from connections like Aria Chen (Stripe) or Sarah Jenkins (Vercel), first demonstrate that you've reviewed the exact job requisition and explain the exact 3 architectural competencies you fulfill.";
+      if (data.success && data.drafts) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: String(Date.now()),
+            sender: 'bot',
+            text: `Analyzed your context ("${data.summary}"). Here are 3 personalized reconnect drafts:`,
+            timestamp: 'Just now',
+            drafts: data.drafts.map((d: { label: string; text: string }) => ({ angle: d.label, text: d.text })),
+            quickActions: [
+              { label: '📊 Audit Network Health', action: 'audit' },
+              { label: '⏱️ Open Decay Simulator', action: 'open_sim' },
+            ],
+          },
+        ]);
       } else {
-        responseText += "I've noted that. Would you like me to audit contacts overdue for reconnect or generate a customized message?";
+        setMessages(prev => [
+          ...prev,
+          {
+            id: String(Date.now()),
+            sender: 'bot',
+            text: "I've noted that. Would you like me to audit contacts overdue for reconnect or generate a customized message?",
+            timestamp: 'Just now',
+            quickActions: [
+              { label: '📊 Audit Network Health', action: 'audit' },
+            ],
+          },
+        ]);
       }
-
-      setMessages(prev => [
-        ...prev,
-        {
-          id: String(Date.now()),
-          sender: 'bot',
-          text: responseText,
-          timestamp: 'Just now',
-          quickActions: [
-            { label: '📊 Audit Network Health', action: 'audit' },
-            { label: '✍️ Draft Reconnect to Elena', action: 'draft_elena' },
-          ],
-        },
-      ]);
-    }, 800);
+    } catch {
+      setIsTyping(false);
+    }
   };
 
   return (

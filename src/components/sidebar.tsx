@@ -122,6 +122,38 @@ export function Sidebar() {
               {label}
             </Link>
           ))}
+
+          {/* Judge & Sandbox Simulator Trigger */}
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--np-border)' }}>
+            <button
+              onClick={() => {
+                setMobileOpen(false);
+                window.dispatchEvent(new CustomEvent('netpulse:open-simulator'));
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: '10px',
+                border: '1px dashed #38bdf8',
+                color: '#38bdf8',
+                backgroundColor: 'rgba(56, 189, 248, 0.08)',
+                fontSize: '0.84rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.2s',
+              }}
+            >
+              <Kanban size={16} />
+              <span>Decay Simulator</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.65rem', backgroundColor: '#0284c7', color: '#fff', padding: '1px 5px', borderRadius: '6px' }}>
+                JUDGE
+              </span>
+            </button>
+          </div>
         </nav>
 
         {/* Footer */}

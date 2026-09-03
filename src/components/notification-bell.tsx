@@ -1,13 +1,16 @@
-﻿'use client';
+'use client';
 
 // ═══════════════════════════════════════════════════════
 // Notification Bell & SLA Cadence Watchdog
 // Real-time alerts for relationship decay & title milestones
 // ═══════════════════════════════════════════════════════
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, AlertTriangle, Briefcase, Calendar, ChevronRight, Check } from 'lucide-react';
 import Link from 'next/link';
+import { netPulseStore } from '@/lib/storage/db';
+import { isContactOverdue } from '@/lib/scoring';
+import { DEFAULT_SETTINGS } from '@/lib/types';
 
 interface NotificationItem {
   id: string;
@@ -21,35 +24,45 @@ interface NotificationItem {
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 'notif-1',
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  const refreshNotifications = async () => {
+    const contacts = await netPulseStore.getContacts();
+    const offsetDays = await netPulseStore.getDecayOffsetDays();
+
+    const overdueContacts = contacts.filter(c => isContactOverdue(c, DEFAULT_SETTINGS, offsetDays));
+
+    const generated: NotificationItem[] = overdueContacts.slice(0, 5).map((c, idx) => ({
+      id: `notif-${c.id}-${idx}`,
       type: 'sla_breach',
-      title: '🔴 Critical SLA Decay: Marcus Vance',
-      detail: 'Benchmark Capital GP is 35 days cold (21 days past 14d Priority SLA threshold).',
-      time: '1h ago',
+      title: `${offsetDays > 14 ? '🔴 Critical SLA Breach' : '⚠️ Cadence Warning'}: ${c.full_name}`,
+      detail: `${c.title || 'Executive'} at ${c.company || 'Partner'} has exceeded target cadence by ${offsetDays + 4} days. Reconnect advised.`,
+      time: offsetDays > 0 ? `+${offsetDays}d simulated` : 'Active SLA',
       link: '/contacts',
       read: false,
-    },
-    {
-      id: 'notif-2',
-      type: 'sla_breach',
-      title: '🔴 Critical SLA Decay: Dr. Elena Rostova',
-      detail: 'DeepMind Principal Scientist is 42 days cold. Suggested angle: LangGraph StateGraph review.',
-      time: '3h ago',
-      link: '/inbox',
-      read: false,
-    },
-    {
-      id: 'notif-3',
-      type: 'milestone',
-      title: '🚀 Milestone: Sarah Jenkins',
-      detail: 'Vercel Staff Architect published a new teardown on Next.js 16 Edge Proxy patterns.',
-      time: '1d ago',
-      link: '/contacts',
-      read: false,
-    },
-  ]);
+    }));
+
+    if (generated.length === 0) {
+      generated.push({
+        id: 'notif-pristine',
+        type: 'milestone',
+        title: '🟢 All Relationship SLAs Healthy',
+        detail: 'Zero overdue contacts detected in current cadence horizon.',
+        time: 'Just now',
+        link: '/pipeline',
+        read: false,
+      });
+    }
+
+    setNotifications(generated);
+  };
+
+  useEffect(() => {
+    refreshNotifications();
+    const handleUpdate = () => refreshNotifications();
+    window.addEventListener('netpulse:state-changed', handleUpdate);
+    return () => window.removeEventListener('netpulse:state-changed', handleUpdate);
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
