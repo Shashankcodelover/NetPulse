@@ -22,8 +22,18 @@
 | **Day 3/7** | `9.30 / 10.0` | Autonomous Contact Dossiers, Reactive SLA Settings, Smart CSV Importer with Field Mapping |
 | **Day 4/7** | `9.50 / 10.0` | Strategic Triage Engine (`/triage`), 10-Sec Quick Enrichment, WhatsApp 1-Click Deep Linking |
 | **Day 5/7** | `9.70 / 10.0` | Global Command Palette (`Ctrl + K`), Job Change Radar (`/radar`), SLA Compliance Telemetry |
-| **Day 6/7** | `9.85 / 10.0` | Interactive Network Graph (`/graph`), 60s Speed Run Batch Outreach, Node Inspector Drawer |
-| **Day 7/7** | **`10.0 / 10.0`** | **Championship Pitch Deck, Web Audio Delight Synthesis, Repository Polish & Production Certification** |
+| **Day 7/7** | **`10.0 / 10.0`** | **Championship Pitch Deck, 101s HD Video Walkthrough, Voiceover Script, Web Audio Delight** |
+
+---
+
+## 🎬 Imagine Cup Media Showcase & Walkthrough Assets
+
+All project presentation media has been organized with clean modularity inside [`docs/showcase/`](docs/showcase/):
+
+- 🎥 **Full HD Desktop Walkthrough Video (101.5s)**: [`docs/showcase/video/netpulse_championship_walkthrough.webm`](docs/showcase/video/netpulse_championship_walkthrough.webm)
+- 🎙️ **Synchronized Pitch & Voiceover Script**: [`docs/showcase/pitch/pitch_voiceover_script.md`](docs/showcase/pitch/pitch_voiceover_script.md)
+- 📸 **Modular Screenshot Gallery & Project Details**: [`docs/showcase/README.md`](docs/showcase/README.md)
+- 🌐 **Public Browser Endpoint**: `/showcase/video/netpulse_championship_walkthrough.webm`
 
 ---
 
