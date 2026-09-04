@@ -1,12 +1,15 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════
-// Sidebar Navigation
+// Sidebar Navigation (Polished UI/UX)
+// Animated active indicators with framer-motion layoutId,
+// glassmorphism depth, and clean micro-interactions.
 // ═══════════════════════════════════════════════════════
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   Zap,
   Users,
@@ -62,7 +65,7 @@ export function Sidebar() {
     <>
       {/* Mobile Header */}
       <div className="mobile-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             onClick={() => setMobileOpen(true)}
             className="btn-ghost"
@@ -72,11 +75,17 @@ export function Sidebar() {
             <Menu size={20} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div className="logo-dot" style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: 'var(--np-accent)', boxShadow: '0 0 8px var(--np-accent)'
-            }} />
-            <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>NetPulse</span>
+            <div
+              className="logo-dot"
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: 'var(--np-accent)',
+                boxShadow: '0 0 10px var(--np-accent)',
+              }}
+            />
+            <span style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em' }}>NetPulse</span>
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -92,32 +101,54 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
-        {/* Close button (mobile) */}
-        <div style={{
-          display: 'none',
-          position: 'absolute', top: 12, right: 12,
-        }} className="mobile-close">
+        {/* Mobile Close Button */}
+        {mobileOpen && (
           <button
             onClick={() => setMobileOpen(false)}
             className="btn-ghost"
-            style={{ padding: 6 }}
+            style={{
+              position: 'absolute',
+              top: 14,
+              right: 14,
+              padding: 6,
+              borderRadius: '50%',
+              zIndex: 10,
+            }}
             aria-label="Close navigation"
           >
             <X size={18} />
           </button>
-        </div>
+        )}
 
         {/* Logo */}
-        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 }}>
+        <div
+          className="sidebar-logo"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingRight: 6,
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="logo-dot" />
-            <h1>NetPulse</h1>
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: 'var(--np-accent)',
+                boxShadow: '0 0 12px var(--np-accent)',
+              }}
+            />
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.03em', margin: 0 }}>
+              NetPulse
+            </h1>
           </div>
           <NotificationBell placement="sidebar" />
         </div>
 
         {/* Omnibar / Command Palette Trigger */}
-        <div style={{ padding: '0 12px 12px' }}>
+        <div style={{ padding: '0 12px 14px' }}>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('netpulse:open-command-palette'))}
             style={{
@@ -125,42 +156,82 @@ export function Sidebar() {
               alignItems: 'center',
               justifyContent: 'space-between',
               width: '100%',
-              padding: '7px 10px',
-              borderRadius: '8px',
+              padding: '8px 12px',
+              borderRadius: '9px',
               backgroundColor: 'var(--np-bg-tertiary)',
               border: '1px solid var(--np-border)',
               color: 'var(--np-text-tertiary)',
-              fontSize: '0.78rem',
+              fontSize: '0.8rem',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
             title="Quick search or jump (Ctrl + K)"
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Search size={14} /> Search or jump...
             </span>
-            <kbd style={{ fontSize: '0.64rem', padding: '1px 5px', borderRadius: 4, background: 'var(--np-bg-card)', border: '1px solid var(--np-border)', color: 'var(--np-text-secondary)', fontWeight: 700 }}>
+            <kbd
+              style={{
+                fontSize: '0.66rem',
+                padding: '1px 6px',
+                borderRadius: 4,
+                background: 'var(--np-bg-card)',
+                border: '1px solid var(--np-border)',
+                color: 'var(--np-text-secondary)',
+                fontWeight: 700,
+              }}
+            >
               Ctrl K
             </kbd>
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="sidebar-nav">
-          {navItems.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={isActive(href) ? 'active' : ''}
-              onClick={() => setMobileOpen(false)}
-            >
-              <Icon size={18} />
-              {label}
-            </Link>
-          ))}
+        {/* Navigation List with Floating Active Pill */}
+        <nav className="sidebar-nav" style={{ position: 'relative' }}>
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
 
-          {/* Judge & Sandbox Simulator Trigger */}
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--np-border)' }}>
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '9px 14px',
+                  borderRadius: '8px',
+                  color: active ? 'var(--np-accent)' : 'var(--np-text-secondary)',
+                  textDecoration: 'none',
+                  fontSize: '0.88rem',
+                  fontWeight: active ? 700 : 500,
+                  transition: 'color 0.15s ease',
+                  zIndex: 1,
+                }}
+              >
+                {active && (
+                  <motion.div
+                    layoutId="activeNavPill"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundColor: 'var(--np-bg-active)',
+                      borderRadius: '8px',
+                      zIndex: -1,
+                    }}
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <Icon size={17} style={{ flexShrink: 0 }} />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
+
+          {/* Time-Travel Decay Simulator Trigger */}
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--np-border)' }}>
             <button
               onClick={() => {
                 setMobileOpen(false);
@@ -173,27 +244,40 @@ export function Sidebar() {
                 width: '100%',
                 padding: '9px 12px',
                 borderRadius: '10px',
-                border: '1px dashed #38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
                 color: '#38bdf8',
-                backgroundColor: 'rgba(56, 189, 248, 0.08)',
-                fontSize: '0.84rem',
+                backgroundColor: 'rgba(56, 189, 248, 0.06)',
+                fontSize: '0.82rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'all 0.2s',
               }}
             >
-              <Kanban size={16} />
+              <Kanban size={15} />
               <span>Decay Simulator</span>
-              <span style={{ marginLeft: 'auto', fontSize: '0.65rem', backgroundColor: '#0284c7', color: '#fff', padding: '1px 5px', borderRadius: '6px' }}>
-                JUDGE
+              <span
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: '0.62rem',
+                  backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                  color: '#38bdf8',
+                  padding: '2px 6px',
+                  borderRadius: '6px',
+                  fontWeight: 800,
+                }}
+              >
+                SANDBOX
               </span>
             </button>
           </div>
         </nav>
 
         {/* Footer */}
-        <div className="sidebar-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div
+          className="sidebar-footer"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+        >
           <button
             onClick={toggleTheme}
             className="theme-toggle"
@@ -204,7 +288,7 @@ export function Sidebar() {
           <button
             onClick={handleSignOut}
             className="btn-ghost btn-sm"
-            style={{ gap: 6 }}
+            style={{ gap: 6, fontSize: '0.8rem' }}
           >
             <LogOut size={16} />
             Sign out

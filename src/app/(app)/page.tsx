@@ -1,68 +1,39 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════
-// Daily Digest — Home Page
-// "10-15 people to reach out to today"
-// Integrated with NetPulseStore IndexedDB, Snooze & Filter Tabs
+// Daily Digest — Home Page (Transformed UI/UX)
+// High-performance dashboard with framer-motion,
+// visual urgency cards, stat grid, and clean hierarchy.
 // ═══════════════════════════════════════════════════════
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { format } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap,
   CheckCircle2,
   Clock,
-  AlertCircle,
-  Building2,
-  Briefcase,
-  Calendar,
-  RotateCcw,
   AlertTriangle,
-  Moon,
+  RotateCcw,
   Sparkles,
-  Sliders,
-  MessageSquare,
   FileText,
   Send,
   Trophy,
+  MoreHorizontal,
+  Flame,
+  Star,
+  Activity,
+  Check,
 } from 'lucide-react';
-import Link from 'next/link';
-import type { Contact, UserSettings, DigestContact } from '@/lib/types';
+import type { UserSettings, DigestContact } from '@/lib/types';
 import { DEFAULT_SETTINGS } from '@/lib/types';
 import { calculatePriorityScore, getSuggestedReason, isContactOverdue } from '@/lib/scoring';
 import { netPulseStore } from '@/lib/storage/db';
-import { generateGoogleCalendarUrl } from '@/lib/calendar';
-import { generateWhatsAppUrl } from '@/lib/whatsapp';
 import { NetworkHealthCard } from '@/components/network-health-card';
 import { SpeedRunModal } from '@/components/speed-run-modal';
 import { PitchDeckModal } from '@/components/pitch-deck-modal';
+import { ContactCard } from '@/components/contact-card';
 import { soundFx } from '@/lib/sound';
-
-// Deterministic avatar color from name
-function getAvatarColor(name: string): string {
-  const colors = [
-    '#4F46E5', '#7C3AED', '#2563EB', '#0891B2', '#059669',
-    '#D97706', '#DC2626', '#DB2777', '#9333EA', '#4338CA',
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-}
-
-function getInitials(name: string): string {
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-}
-
-function getTierBadgeClass(tier: string): string {
-  switch (tier) {
-    case 'priority': return 'badge-priority';
-    case 'warm': return 'badge-warm';
-    case 'cold': return 'badge-cold';
-    default: return 'badge-cold';
-  }
-}
 
 export default function DigestPage() {
   const [contacts, setContacts] = useState<DigestContact[]>([]);
@@ -74,6 +45,8 @@ export default function DigestPage() {
   const [decayOffsetDays, setDecayOffsetDays] = useState<number>(0);
   const [speedRunOpen, setSpeedRunOpen] = useState(false);
   const [pitchDeckOpen, setPitchDeckOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -119,6 +92,19 @@ export default function DigestPage() {
     return () => window.removeEventListener('netpulse:state-changed', handleUpdate);
   }, []);
 
+  // Close overflow menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
   const markContacted = async (contactId: string) => {
     soundFx.playSuccessChime();
     await netPulseStore.markContacted(contactId);
@@ -160,10 +146,12 @@ export default function DigestPage() {
 
     navigator.clipboard.writeText(md);
     showToast('Copied formatted Markdown digest to clipboard for Notion/Slack!');
+    setMenuOpen(false);
   };
 
   const handleSimulateCron = () => {
     showToast('⚡ Simulated 8:00 AM Cron: Dispatched morning digest notification payload!');
+    setMenuOpen(false);
   };
 
   const today = format(new Date(), 'EEEE, MMMM d, yyyy');
@@ -183,10 +171,15 @@ export default function DigestPage() {
       <div className="page-container" style={{ maxWidth: 1100 }}>
         <div className="skeleton" style={{ height: 36, width: 240, marginBottom: 8 }} />
         <div className="skeleton" style={{ height: 20, width: 160, marginBottom: 28 }} />
-        <div className="skeleton" style={{ height: 160, borderRadius: 16, marginBottom: 28 }} />
+        <div className="stat-grid">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="skeleton" style={{ height: 110, borderRadius: 14 }} />
+          ))}
+        </div>
+        <div className="skeleton" style={{ height: 140, borderRadius: 16, marginBottom: 24 }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="skeleton" style={{ height: 80, borderRadius: 12 }} />
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="skeleton" style={{ height: 74, borderRadius: 14 }} />
           ))}
         </div>
       </div>
@@ -197,7 +190,9 @@ export default function DigestPage() {
     <div className="page-container" style={{ maxWidth: 1100 }}>
       {/* Simulation Banner */}
       {decayOffsetDays > 0 && (
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -214,7 +209,7 @@ export default function DigestPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <AlertTriangle size={18} color="#ef4444" />
             <span>
-              <strong>Simulated Decay Active (+{decayOffsetDays} Days):</strong> Priority scores recalculated via half-life decay equations. Cadence Watchdog alerting.
+              <strong>Simulated Decay Active (+{decayOffsetDays} Days):</strong> Priority scores recalculated via half-life decay equations.
             </span>
           </div>
           <button
@@ -235,124 +230,243 @@ export default function DigestPage() {
           >
             <RotateCcw size={13} /> Reset Horizon
           </button>
-        </div>
+        </motion.div>
       )}
 
-      {/* Header */}
-      <div className="page-header animate-fade-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+      {/* Modern Clean Header */}
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 16,
+          marginBottom: 28,
+        }}
+      >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
-              IMAGINE CUP STAGE 7/7
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: 'var(--np-accent)',
+                backgroundColor: 'var(--np-accent-light)',
+                padding: '2px 8px',
+                borderRadius: 6,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Executive Steward
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
-              World Championship Finalist &bull; 10.0 / 10.0 Production Certified
+            <span style={{ fontSize: '0.78rem', color: 'var(--np-text-tertiary)' }}>
+              Deterministic Cadence Intelligence
             </span>
           </div>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>Daily Digest</h1>
-          <p style={{ margin: 0, color: 'var(--np-text-secondary)', fontSize: '0.9rem' }}>{today}</p>
+          <h1 style={{ fontSize: '1.9rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
+            Daily Digest
+          </h1>
+          <p style={{ margin: '4px 0 0', color: 'var(--np-text-secondary)', fontSize: '0.88rem' }}>
+            {today}
+          </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setPitchDeckOpen(true)}
-            className="btn btn-secondary btn-sm"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderColor: '#f59e0b', color: '#f59e0b', fontWeight: 700 }}
-            title="Open Imagine Cup Presentation Deck"
-          >
-            <Trophy size={14} /> Imagine Cup Deck
-          </button>
+        {/* Header Action Strip */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Primary High-Velocity CTA */}
           <button
             onClick={() => setSpeedRunOpen(true)}
-            className="btn btn-primary btn-sm"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
-            title="Start 60-Second Batch Outreach"
+            className="btn btn-primary"
+            style={{
+              padding: '10px 18px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              borderRadius: 10,
+              boxShadow: '0 4px 16px rgba(79, 70, 229, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+            title="Start 60-Second Batch Outreach Power Mode"
           >
-            <Zap size={14} /> 60s Speed Run
+            <Zap size={16} /> 60s Speed Run
           </button>
-          <button
-            onClick={handleExportMarkdown}
-            className="btn btn-secondary btn-sm"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            title="Export Markdown Digest"
-          >
-            <FileText size={14} /> Export Markdown
-          </button>
-          <button
-            onClick={handleSimulateCron}
-            className="btn btn-secondary btn-sm"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderColor: '#10b981', color: '#10b981' }}
-            title="Simulate 8:00 AM Cron Delivery"
-          >
-            <Send size={14} /> Simulate 8 AM Cron
-          </button>
+
+          {/* Time-Travel Simulator Sandbox */}
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('netpulse:open-simulator'))}
-            className="btn btn-secondary btn-sm"
-            style={{ borderColor: '#38bdf8', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: 6 }}
+            className="btn btn-secondary"
+            style={{
+              padding: '9px 14px',
+              borderColor: 'rgba(56, 189, 248, 0.4)',
+              color: '#38bdf8',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              borderRadius: 10,
+            }}
+            title="Launch Time-Travel Decay Simulator"
           >
-            <Clock size={15} /> Time-Travel Simulator
+            <Clock size={15} /> Time-Travel
           </button>
+
+          {/* Clean Overflow Dropdown */}
+          <div className="overflow-menu" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="overflow-trigger"
+              title="More options"
+              aria-label="More options"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+
+            {menuOpen && (
+              <div className="overflow-dropdown">
+                <button
+                  onClick={() => { setPitchDeckOpen(true); setMenuOpen(false); }}
+                >
+                  <Trophy size={14} color="#f59e0b" />
+                  <span>Imagine Cup Deck</span>
+                </button>
+                <button onClick={handleExportMarkdown}>
+                  <FileText size={14} />
+                  <span>Export Markdown</span>
+                </button>
+                <button onClick={handleSimulateCron}>
+                  <Send size={14} color="#10b981" />
+                  <span>Simulate 8 AM Cron</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Hero Card */}
-      <div className="digest-hero animate-fade-in-up" style={{ marginBottom: 24, padding: '22px 26px', borderRadius: 16 }}>
-        <h2 style={{ fontSize: '1.35rem', fontWeight: 800 }}>
-          <Zap size={22} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: 'var(--np-accent)' }} />
-          {contacts.length - completedCount} connections requiring attention
-        </h2>
-        <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.86rem' }}>
-          Ranked deterministically by algorithmic half-life decay, tier SLA, and decision-maker seniority.
-        </p>
+      {/* Dashboard Stat Grid */}
+      <div className="stat-grid">
+        {/* Card 1: Attention Required */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="stat-card"
+          style={{ '--stat-accent': 'var(--np-accent)' } as React.CSSProperties}
+        >
+          <div
+            className="stat-icon"
+            style={{ backgroundColor: 'var(--np-accent-light)', color: 'var(--np-accent)' }}
+          >
+            <Zap size={18} />
+          </div>
+          <div className="stat-value" style={{ color: 'var(--np-text-primary)' }}>
+            {contacts.length - completedCount}
+          </div>
+          <div className="stat-label">Require Attention Today</div>
+        </motion.div>
 
-        <div className="digest-stats" style={{ display: 'flex', gap: 24, marginTop: 16 }}>
-          <div className="digest-stat">
-            <span className="stat-number" style={{ fontSize: '1.5rem', fontWeight: 800 }}>{completedCount}</span>
-            <span className="stat-label" style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>Completed Today</span>
+        {/* Card 2: SLA Overdue */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className={`stat-card ${overdueCount > 0 ? 'glow-red' : ''}`}
+          style={{ '--stat-accent': 'var(--np-danger)' } as React.CSSProperties}
+        >
+          <div
+            className="stat-icon"
+            style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}
+          >
+            <Flame size={18} />
           </div>
-          <div className="digest-stat">
-            <span className="stat-number" style={{ fontSize: '1.5rem', fontWeight: 800, color: overdueCount > 0 ? '#ef4444' : 'inherit' }}>
-              {overdueCount}
-            </span>
-            <span className="stat-label" style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>SLA Overdue</span>
+          <div className="stat-value" style={{ color: overdueCount > 0 ? '#ef4444' : 'inherit' }}>
+            {overdueCount}
           </div>
-          <div className="digest-stat">
-            <span className="stat-number" style={{ fontSize: '1.5rem', fontWeight: 800 }}>{priorityCount}</span>
-            <span className="stat-label" style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>Priority Tier</span>
+          <div className="stat-label">SLA Breaches Pending</div>
+        </motion.div>
+
+        {/* Card 3: Priority Tier */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="stat-card"
+          style={{ '--stat-accent': 'var(--np-warning)' } as React.CSSProperties}
+        >
+          <div
+            className="stat-icon"
+            style={{ backgroundColor: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}
+          >
+            <Star size={18} />
           </div>
-        </div>
+          <div className="stat-value" style={{ color: 'var(--np-text-primary)' }}>
+            {priorityCount}
+          </div>
+          <div className="stat-label">Priority Tier Leaders</div>
+        </motion.div>
+
+        {/* Card 4: Daily Actions Completed */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="stat-card"
+          style={{ '--stat-accent': 'var(--np-success)' } as React.CSSProperties}
+        >
+          <div
+            className="stat-icon"
+            style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}
+          >
+            <Activity size={18} />
+          </div>
+          <div className="stat-value" style={{ color: '#10b981' }}>
+            {completedCount}
+          </div>
+          <div className="stat-label">Interactions Logged Today</div>
+        </motion.div>
       </div>
 
-      {/* Live SLA Compliance & Network Health Telemetry */}
-      <NetworkHealthCard />
+      {/* SLA Telemetry Bar */}
+      <div style={{ marginBottom: 28 }}>
+        <NetworkHealthCard />
+      </div>
 
-      {/* Filter Tabs Strip */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 6 }}>
+      {/* Filter Tabs & Section Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 16,
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        {/* Filter Pills */}
+        <div className="filter-tabs">
           <button
             onClick={() => setDigestFilter('all')}
-            className={`btn btn-sm ${digestFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ fontSize: '0.8rem', fontWeight: digestFilter === 'all' ? 700 : 500 }}
+            className={`filter-tab ${digestFilter === 'all' ? 'active' : ''}`}
           >
-            All Attention ({contacts.length})
+            All Connections ({contacts.length})
           </button>
           <button
             onClick={() => setDigestFilter('priority')}
-            className={`btn btn-sm ${digestFilter === 'priority' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ fontSize: '0.8rem', fontWeight: digestFilter === 'priority' ? 700 : 500 }}
+            className={`filter-tab ${digestFilter === 'priority' ? 'active' : ''}`}
           >
             Priority Tier ({priorityCount})
           </button>
           <button
             onClick={() => setDigestFilter('overdue')}
-            className={`btn btn-sm ${digestFilter === 'overdue' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ fontSize: '0.8rem', fontWeight: digestFilter === 'overdue' ? 700 : 500 }}
+            className={`filter-tab ${digestFilter === 'overdue' ? 'active' : ''}`}
           >
             SLA Overdue ({overdueCount})
           </button>
         </div>
 
+        {/* Snooze Clear Button */}
         {snoozedIds.size > 0 && (
           <button
             onClick={() => { setSnoozedIds(new Set()); showToast('Restored all snoozed contacts to digest.'); }}
@@ -364,156 +478,39 @@ export default function DigestPage() {
         )}
       </div>
 
-      {/* Contacts List */}
-      <div className="contacts-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {visibleContacts.length === 0 ? (
-          <div className="card animate-fade-in-up" style={{ padding: 40, textAlign: 'center', borderRadius: 14 }}>
-            <CheckCircle2 size={36} style={{ margin: '0 auto 12px auto', color: '#10b981' }} />
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 6px 0' }}>You&apos;re all caught up!</h3>
-            <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.88rem', margin: 0 }}>
-              Zero connections in this view require immediate attention.
-            </p>
-          </div>
-        ) : (
-          visibleContacts.map((contact) => {
-            const isCompleted = contactedToday.has(contact.id);
-            const score = contact.priority_score?.score ?? 0;
-
-            return (
-              <div
+      {/* Contact Cards List with Framer Motion Layout Transitions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <AnimatePresence mode="popLayout">
+          {visibleContacts.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="card"
+              style={{ padding: 48, textAlign: 'center', borderRadius: 16 }}
+            >
+              <CheckCircle2 size={40} style={{ margin: '0 auto 12px auto', color: '#10b981' }} />
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 6px 0' }}>
+                You&apos;re completely on top of relationships!
+              </h3>
+              <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.88rem', margin: 0 }}>
+                Zero connections in this view require immediate outreach.
+              </p>
+            </motion.div>
+          ) : (
+            visibleContacts.map((contact, index) => (
+              <ContactCard
                 key={contact.id}
-                className={`contact-card ${isCompleted ? 'contact-card-completed' : ''} animate-fade-in`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 18px',
-                  borderRadius: 12,
-                  backgroundColor: 'var(--np-bg-card)',
-                  border: '1px solid var(--np-border)',
-                  transition: 'all 0.2s',
-                  boxSizing: 'border-box',
-                  width: '100%',
-                }}
-              >
-                {/* Left: Avatar + Score Ring */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      backgroundColor: getAvatarColor(contact.full_name),
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.85rem',
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {getInitials(contact.full_name)}
-                  </div>
-
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <Link
-                        href={`/contacts/${contact.id}`}
-                        style={{
-                          fontSize: '0.92rem',
-                          fontWeight: 700,
-                          color: 'var(--np-text-primary)',
-                          textDecoration: 'none',
-                        }}
-                      >
-                        {contact.full_name}
-                      </Link>
-                      <span className={`badge ${getTierBadgeClass(contact.relationship_tier)}`} style={{ fontSize: '0.65rem' }}>
-                        {contact.relationship_tier}
-                      </span>
-                    </div>
-
-                    <div style={{ fontSize: '0.78rem', color: 'var(--np-text-secondary)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <Building2 size={13} color="var(--np-text-tertiary)" style={{ flexShrink: 0 }} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.title} &bull; {contact.company}</span>
-                    </div>
-
-                    <div style={{ fontSize: '0.74rem', color: contact.is_overdue ? '#ef4444' : 'var(--np-text-tertiary)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {contact.is_overdue ? <AlertCircle size={12} /> : <Clock size={12} />}
-                      <span>{contact.suggested_reason}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right: Score Ring + Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                  {/* Score Indicator */}
-                  <div style={{ textAlign: 'right', marginRight: 4 }}>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: score >= 80 ? '#ef4444' : score >= 60 ? '#f59e0b' : '#10b981' }}>
-                      {score}
-                    </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--np-text-tertiary)' }}>Decay Score</div>
-                  </div>
-
-                  {/* Snooze 7d Action per PRD */}
-                  {!isCompleted && (
-                    <button
-                      onClick={() => snoozeContact(contact.id, contact.full_name)}
-                      className="btn btn-ghost btn-sm"
-                      style={{ padding: '6px 10px', fontSize: '0.74rem', color: 'var(--np-text-tertiary)' }}
-                      title="Snooze for 7 days"
-                    >
-                      <Moon size={13} /> Snooze
-                    </button>
-                  )}
-
-                  {/* 1-Click WhatsApp Outreach */}
-                  <a
-                    href={generateWhatsAppUrl({ contact })}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-secondary btn-sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', padding: '6px 10px', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)' }}
-                    title="Open WhatsApp Outreach"
-                  >
-                    <MessageSquare size={13} /> WhatsApp
-                  </a>
-
-                  {/* 1-Click Smart Calendar Action */}
-                  <a
-                    href={generateGoogleCalendarUrl({
-                      contact,
-                      agendaTopic: `SLA Recovery Catch-up (${contact.relationship_tier.toUpperCase()} Tier)`,
-                    })}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-secondary btn-sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', padding: '6px 12px' }}
-                    title="Schedule 1-Click Meeting"
-                  >
-                    <Calendar size={13} /> Meet
-                  </a>
-
-                  {/* Mark Contacted Button */}
-                  {!isCompleted ? (
-                    <button
-                      onClick={() => markContacted(contact.id)}
-                      className="btn btn-primary btn-sm"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', padding: '6px 12px', fontWeight: 700 }}
-                    >
-                      <CheckCircle2 size={13} /> Done
-                    </button>
-                  ) : (
-                    <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <CheckCircle2 size={14} /> Contacted
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
+                contact={contact}
+                isCompleted={contactedToday.has(contact.id)}
+                onMarkContacted={markContacted}
+                onSnooze={snoozeContact}
+                index={index}
+              />
+            ))
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Morning Speed Run Batch Outreach Modal */}
@@ -534,13 +531,21 @@ export default function DigestPage() {
         onClose={() => setPitchDeckOpen(false)}
       />
 
-      {/* Toast Notification */}
-      {toast && (
-        <div className="toast animate-fade-in-up" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CheckCircle2 size={16} style={{ color: 'var(--np-success)' }} />
-          <span>{toast}</span>
-        </div>
-      )}
+      {/* Floating Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="toast"
+            style={{ display: 'flex', alignItems: 'center', gap: 10, zIndex: 6000 }}
+          >
+            <CheckCircle2 size={16} style={{ color: 'var(--np-success)' }} />
+            <span>{toast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -24,7 +24,7 @@ export function AudioTourBar() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(149);
   const [currentTime, setCurrentTime] = useState(0);
-  const [minimized, setMinimized] = useState(false);
+  const [minimized, setMinimized] = useState(true);
   const [closed, setClosed] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -107,8 +107,8 @@ export function AudioTourBar() {
     <div
       style={{
         position: 'fixed',
-        bottom: 24,
-        right: 24,
+        bottom: minimized ? 24 : 84,
+        right: minimized ? 88 : 24,
         zIndex: 3500,
         transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
