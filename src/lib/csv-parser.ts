@@ -42,14 +42,26 @@ export interface ParsedContact {
 }
 
 /**
- * Parse a LinkedIn connections CSV file and return validated contacts.
+ * Parse a LinkedIn connections CSV file or text and return validated contacts.
+ * Automatically skips preamble rows (e.g. LinkedIn's "Notes:" disclaimer).
  */
-export function parseLinkedInCSV(file: File): Promise<{
+export async function parseLinkedInCSV(fileOrText: File | string): Promise<{
   contacts: ParsedContact[];
   errors: ImportError[];
 }> {
+  let rawText = typeof fileOrText === 'string' ? fileOrText : await fileOrText.text();
+
+  // LinkedIn CSV exports often include 2-4 lines of notes before the header row:
+  // "Notes: When exporting your connection list..."
+  // Find the line containing the actual column headers:
+  const lines = rawText.split(/\r?\n/);
+  const headerIdx = lines.findIndex(l => /first(\s*|_)?name/i.test(l) && /last(\s*|_)?name/i.test(l));
+  if (headerIdx > 0) {
+    rawText = lines.slice(headerIdx).join('\n');
+  }
+
   return new Promise((resolve, reject) => {
-    Papa.parse<Record<string, string>>(file, {
+    Papa.parse<Record<string, string>>(rawText, {
       header: true,
       skipEmptyLines: true,
       transformHeader: normalizeHeader,
