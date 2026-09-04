@@ -26,6 +26,28 @@ export const metadata: Metadata = {
     "LinkedIn",
     "WhatsApp CRM",
   ],
+  openGraph: {
+    title: "NetPulse CRM — Autonomous Relationship Intelligence",
+    description: "Turn your LinkedIn and WhatsApp networks into a prioritized, trackable pipeline with deterministic half-life decay, autonomous dossiers, and multi-channel outreach.",
+    url: "https://netpulse.shashankj.tech",
+    siteName: "NetPulse",
+    images: [
+      {
+        url: "/showcase/screenshots/transformed_daily_digest.png",
+        width: 1366,
+        height: 768,
+        alt: "NetPulse CRM Daily Digest Dashboard",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NetPulse CRM — Autonomous Relationship Intelligence",
+    description: "Turn your LinkedIn and WhatsApp networks into a prioritized, trackable pipeline with deterministic half-life decay.",
+    images: ["/showcase/screenshots/transformed_daily_digest.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

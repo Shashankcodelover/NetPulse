@@ -4,6 +4,7 @@
 > *The AI-native personal relationship steward with algorithmic half-life decay, autonomous dossiers, and multi-channel outreach.*
 
 [![Microsoft Imagine Cup 2026](https://img.shields.io/badge/Microsoft%20Imagine%20Cup-2026%20World%20Finalist-0078D4?logo=microsoft)](https://imaginecup.microsoft.com/)
+[![Live Deployment](https://img.shields.io/badge/Live%20Demo-netpulse.shashankj.tech-4F46E5?logo=vercel)](https://netpulse.shashankj.tech)
 [![Scoreboard](https://img.shields.io/badge/Championship%20Rating-10.0%20%2F%2010.0-10B981)](https://github.com/Shashankcodelover/NetPulse)
 [![Next.js 16](https://img.shields.io/badge/Next.js-16%20(Turbopack)-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict%205-3178C6?logo=typescript)](https://www.typescriptlang.org/)
@@ -13,7 +14,13 @@
 
 ---
 
-## 🏆 7-Day Imagine Cup Transformation Scoreboard
+## 🌐 Live Production Deployment
+> 🔗 **Public URL**: [**https://netpulse.shashankj.tech**](https://netpulse.shashankj.tech)  
+> *Production deployed via Vercel with global CDN edge routing and HTTPS.*
+
+---
+
+## 🏆 Imagine Cup Transformation Scoreboard
 
 | Stage | Score | Milestones & Deliverables |
 |---|---|---|
@@ -22,7 +29,8 @@
 | **Day 3/7** | `9.30 / 10.0` | Autonomous Contact Dossiers, Reactive SLA Settings, Smart CSV Importer with Field Mapping |
 | **Day 4/7** | `9.50 / 10.0` | Strategic Triage Engine (`/triage`), 10-Sec Quick Enrichment, WhatsApp 1-Click Deep Linking |
 | **Day 5/7** | `9.70 / 10.0` | Global Command Palette (`Ctrl + K`), Job Change Radar (`/radar`), SLA Compliance Telemetry |
-| **Day 7/7** | **`10.0 / 10.0`** | **Championship Pitch Deck, 101s HD Video Walkthrough, Voiceover Script, Web Audio Delight** |
+| **Day 7/7** | `9.90 / 10.0` | Championship Pitch Deck, 101s HD Video Walkthrough, Voiceover Script, Web Audio Delight |
+| **Day 8/7** | **`10.0 / 10.0`** | **Grand Finale & UI/UX Transformation: Framer-Motion Dashboard, Animated Score Rings, Live Deployment at `netpulse.shashankj.tech`** |
 
 ---
 

@@ -140,10 +140,10 @@ export default function RadarPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
-              PRD FEATURE 9
+              SIGNAL RADAR
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
-              Executive Career Movement Radar
+              Career Movement &amp; Founding Intelligence
             </span>
           </div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>Job Change &amp; Promotion Radar</h1>

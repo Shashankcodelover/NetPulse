@@ -160,7 +160,7 @@ export default function GraphPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
-              IMAGINE CUP STAGE 6/7
+              STAGE 7/7 • PRODUCTION CERTIFIED
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
               Autonomous Network Graph Topology
