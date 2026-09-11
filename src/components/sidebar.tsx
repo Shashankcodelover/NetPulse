@@ -34,6 +34,7 @@ import { NotificationBell } from '@/components/notification-bell';
 
 const navItems = [
   { href: '/', label: 'Digest', icon: Zap },
+  { href: '/reconnect', label: 'Reconnect', icon: Sparkles },
   { href: '/pipeline', label: 'Pipeline', icon: Kanban },
   { href: '/graph', label: 'Graph', icon: Share2 },
   { href: '/contacts', label: 'Contacts', icon: Users },
