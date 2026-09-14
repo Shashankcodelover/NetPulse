@@ -60,6 +60,32 @@ class SoundSynthesizer {
     }
   }
 
+  public buttonClick() {
+    if (!this.enabled) return;
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      gain.gain.setValueAtTime(0.03, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    } catch {}
+  }
+
+  public positiveChime() {
+    this.playSuccessChime();
+  }
+
+  public badgeEarned() {
+    this.playCelebrationFanfare();
+  }
+
   // Triumphant major chord fanfare upon clearing Speed Run or achieving zero breaches
   public playCelebrationFanfare() {
     if (!this.enabled) return;

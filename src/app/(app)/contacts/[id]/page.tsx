@@ -28,13 +28,17 @@ import {
   TrendingUp,
   AlertTriangle,
   Compass,
+  ShieldCheck,
+  Award,
+  ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { netPulseStore } from '@/lib/storage/db';
 import { generateGoogleCalendarUrl } from '@/lib/calendar';
 import { generateWhatsAppUrl } from '@/lib/whatsapp';
 import { EnrichmentModal } from '@/components/enrichment-modal';
-import { calculatePriorityScore, isContactOverdue, getSuggestedReason } from '@/lib/scoring';
+import { calculatePriorityScore, isContactOverdue, getSuggestedReason, calculateSocialCapitalScore } from '@/lib/scoring';
 import { DEFAULT_SETTINGS } from '@/lib/types';
 import type { Contact, Interaction, RelationshipTier, InteractionType, UserSettings } from '@/lib/types';
 
@@ -198,6 +202,8 @@ export default function ContactDetailPage() {
   const daysSince = contact.last_contacted_at
     ? Math.floor((simulatedNow - new Date(contact.last_contacted_at).getTime()) / (1000 * 60 * 60 * 24))
     : null;
+
+  const socialCapital = calculateSocialCapitalScore(contact, interactions, decayOffset);
 
   // AI Strategic Next Best Action recommendation
   let nextBestActionTitle = 'Quarterly Strategic Alignment Check-in';
@@ -499,6 +505,101 @@ export default function ContactDetailPage() {
             <Compass size={14} /> Compose AI Outreach
           </button>
         </div>
+      </div>
+
+      {/* Social Capital & Relationship Equity Scorecard */}
+      <div
+        className="card animate-fade-in-up"
+        style={{
+          marginBottom: 20,
+          padding: 20,
+          borderRadius: 14,
+          backgroundColor: 'var(--np-bg-secondary)',
+          border: '1px solid var(--np-border)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Award size={18} style={{ color: 'var(--np-accent)' }} />
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>Social Capital &amp; Relationship Equity</h3>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span
+              className="badge"
+              style={{
+                backgroundColor:
+                  socialCapital.cadenceHealth === 'Optimal'
+                    ? 'rgba(16, 185, 129, 0.15)'
+                    : socialCapital.cadenceHealth === 'Stable'
+                    ? 'rgba(59, 130, 246, 0.15)'
+                    : socialCapital.cadenceHealth === 'At Risk'
+                    ? 'rgba(245, 158, 11, 0.15)'
+                    : 'rgba(239, 68, 68, 0.15)',
+                color:
+                  socialCapital.cadenceHealth === 'Optimal'
+                    ? '#10b981'
+                    : socialCapital.cadenceHealth === 'Stable'
+                    ? '#3b82f6'
+                    : socialCapital.cadenceHealth === 'At Risk'
+                    ? '#f59e0b'
+                    : '#ef4444',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+              }}
+            >
+              {socialCapital.cadenceHealth} Health
+            </span>
+            <button
+              onClick={() => router.push(`/inbox?contactId=${contact.id}`)}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.78rem' }}
+            >
+              <Sparkles size={13} /> Outreach Studio <ArrowRight size={12} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 14 }}>
+          <div style={{ padding: 12, borderRadius: 10, backgroundColor: 'var(--np-bg-card)', border: '1px solid var(--np-border)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>
+              Equity Score
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--np-accent)', marginTop: 2 }}>
+              {socialCapital.score} <span style={{ fontSize: '0.78rem', color: 'var(--np-text-tertiary)' }}>/100</span>
+            </div>
+          </div>
+
+          <div style={{ padding: 12, borderRadius: 10, backgroundColor: 'var(--np-bg-card)', border: '1px solid var(--np-border)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>
+              Reciprocity Ratio
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', marginTop: 2 }}>
+              {Math.round(socialCapital.reciprocityRatio * 100)}%
+            </div>
+          </div>
+
+          <div style={{ padding: 12, borderRadius: 10, backgroundColor: 'var(--np-bg-card)', border: '1px solid var(--np-border)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>
+              Logged Touchpoints
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--np-text-primary)', marginTop: 2 }}>
+              {socialCapital.touchpointCount}
+            </div>
+          </div>
+
+          <div style={{ padding: 12, borderRadius: 10, backgroundColor: 'var(--np-bg-card)', border: '1px solid var(--np-border)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>
+              Seniority Leverage
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#8b5cf6', marginTop: 2 }}>
+              +{socialCapital.seniorityWeight} pts
+            </div>
+          </div>
+        </div>
+
+        <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--np-text-secondary)', lineHeight: 1.5 }}>
+          <strong>Algorithmic Counsel:</strong> {socialCapital.recommendedAction}
+        </p>
       </div>
 
       {/* Grid: Relationship Journal & Quick Note */}

@@ -57,6 +57,15 @@ export interface Draft {
   created_at: string;
 }
 
+export interface SocialCapitalMetrics {
+  score: number;
+  cadenceHealth: 'Optimal' | 'Stable' | 'At Risk' | 'Dormant';
+  reciprocityRatio: number;
+  touchpointCount: number;
+  seniorityWeight: number;
+  recommendedAction: string;
+}
+
 export interface DraftOption {
   type: 'congratulate' | 'question' | 'insight';
   text: string;

@@ -11,7 +11,7 @@
 // All weights are user-configurable in settings.
 
 import { differenceInDays } from 'date-fns';
-import type { Contact, UserSettings, PriorityScore } from '@/lib/types';
+import type { Contact, UserSettings, PriorityScore, Interaction, SocialCapitalMetrics } from '@/lib/types';
 
 // Known decision-maker titles (case-insensitive matching)
 const HIGH_VALUE_TITLES = [
@@ -239,3 +239,94 @@ export function isContactOverdue(
 
   return daysSince >= targetDays;
 }
+
+/**
+ * Calculate the multi-factor Social Capital & Relationship Equity Score (0-100).
+ * Assesses interaction cadence, reciprocity balance, seniority influence, and decay status.
+ */
+export function calculateSocialCapitalScore(
+  contact: Contact,
+  interactions: Interaction[] = [],
+  offsetDays: number = 0
+): SocialCapitalMetrics {
+  const simulatedDate = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
+  const daysSince = contact.last_contacted_at
+    ? differenceInDays(simulatedDate, new Date(contact.last_contacted_at))
+    : 999;
+
+  // 1. Cadence & Decay factor (0 - 35 pts)
+  let cadencePoints = 35;
+  if (daysSince > 120) {
+    cadencePoints = 5;
+  } else if (daysSince > 60) {
+    cadencePoints = 15;
+  } else if (daysSince > 30) {
+    cadencePoints = 25;
+  } else {
+    cadencePoints = 35;
+  }
+
+  // 2. Interaction Depth & Frequency (0 - 30 pts)
+  const count = interactions.length;
+  let depthPoints = Math.min(30, count * 6);
+  if (count === 0 && daysSince < 45) {
+    depthPoints = 12; // Baseline for warm imported contacts
+  }
+
+  // 3. Seniority & Strategic Leverage (0 - 25 pts)
+  let seniorityWeight = 10;
+  const title = (contact.title || '').toLowerCase();
+  if (HIGH_VALUE_TITLES.some(t => title.includes(t))) {
+    seniorityWeight = 25;
+  } else if (MID_VALUE_TITLES.some(t => title.includes(t))) {
+    seniorityWeight = 18;
+  } else if (contact.relationship_tier === 'priority') {
+    seniorityWeight = 22;
+  }
+
+  // 4. Tier Baseline (0 - 10 pts)
+  let tierPoints = 5;
+  if (contact.relationship_tier === 'priority') tierPoints = 10;
+  else if (contact.relationship_tier === 'warm') tierPoints = 7;
+  else tierPoints = 4;
+
+  const totalScore = Math.min(100, Math.max(10, cadencePoints + depthPoints + seniorityWeight + tierPoints));
+
+  // Determine Cadence Health Category
+  let cadenceHealth: 'Optimal' | 'Stable' | 'At Risk' | 'Dormant' = 'Stable';
+  if (daysSince <= 21 && totalScore >= 75) {
+    cadenceHealth = 'Optimal';
+  } else if (daysSince <= 45 && totalScore >= 50) {
+    cadenceHealth = 'Stable';
+  } else if (daysSince <= 90) {
+    cadenceHealth = 'At Risk';
+  } else {
+    cadenceHealth = 'Dormant';
+  }
+
+  // Reciprocity Ratio (estimated based on interaction types)
+  const callsAndMeetings = interactions.filter(i => i.type === 'call' || (i as any).type === 'meeting').length;
+  const reciprocityRatio = count > 0 ? Math.min(1.0, 0.5 + (callsAndMeetings / count) * 0.5) : 0.7;
+
+  // Strategic Recommendation
+  let recommendedAction = '';
+  if (cadenceHealth === 'Optimal') {
+    recommendedAction = 'High alignment. Maintain natural cadence; share relevant updates as they occur.';
+  } else if (cadenceHealth === 'Stable') {
+    recommendedAction = 'Good standing. Plan a low-friction touchpoint within the next 2 weeks.';
+  } else if (cadenceHealth === 'At Risk') {
+    recommendedAction = 'Attention required. Connection is cooling; dispatch an executive warm reconnect.';
+  } else {
+    recommendedAction = 'Dormant equity. Re-establish contact using a notable company milestone or article.';
+  }
+
+  return {
+    score: totalScore,
+    cadenceHealth,
+    reciprocityRatio,
+    touchpointCount: count,
+    seniorityWeight,
+    recommendedAction,
+  };
+}
+
