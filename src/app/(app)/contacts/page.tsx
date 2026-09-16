@@ -22,10 +22,13 @@ import {
   X,
   CheckCircle2,
   Calendar,
+  Trash2,
+  AlertTriangle,
+  Share2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { netPulseStore } from '@/lib/storage/db';
-import type { Contact, RelationshipTier } from '@/lib/types';
+import type { Contact, RelationshipTier, RelationshipType } from '@/lib/types';
 
 function getAvatarColor(name: string): string {
   const colors = [
@@ -62,6 +65,10 @@ export default function ContactsPage() {
   const [newEmail, setNewEmail] = useState('');
   const [newTier, setNewTier] = useState<RelationshipTier>('priority');
   const [newNotes, setNewNotes] = useState('');
+  const [relateWithExisting, setRelateWithExisting] = useState(false);
+  const [relatedContactId, setRelatedContactId] = useState('');
+  const [relationType, setRelationType] = useState<RelationshipType>('colleague');
+  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const loadContacts = async () => {
@@ -108,12 +115,26 @@ export default function ContactsPage() {
     };
 
     await netPulseStore.saveContact(newContact);
+
+    if (relateWithExisting && relatedContactId) {
+      await netPulseStore.saveRelationship({
+        id: `rel-${Date.now()}`,
+        from_contact_id: newContact.id,
+        to_contact_id: relatedContactId,
+        type: relationType,
+        notes: `Directly connected upon onboarding into NetPulse directory.`,
+        created_at: now,
+      });
+    }
+
     setShowAddModal(false);
     setNewFullName('');
     setNewTitle('');
     setNewCompany('');
     setNewEmail('');
     setNewNotes('');
+    setRelateWithExisting(false);
+    setRelatedContactId('');
     showToast(`Added ${newContact.full_name} to your relationship directory!`);
     await loadContacts();
   };
@@ -364,6 +385,25 @@ export default function ContactsPage() {
                     {formatDistanceToNow(new Date(contact.last_contacted_at), { addSuffix: true })}
                   </span>
                 )}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setContactToDelete(contact);
+                  }}
+                  className="btn-ghost"
+                  title="Delete contact"
+                  style={{
+                    padding: '6px 8px',
+                    color: 'var(--np-text-tertiary)',
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
                 <ChevronRight size={16} />
               </div>
             </Link>
@@ -477,6 +517,73 @@ export default function ContactsPage() {
                 </div>
               </div>
 
+              {/* Relationship Creation */}
+              <div style={{
+                background: 'var(--np-bg-secondary)',
+                borderRadius: 10,
+                padding: '10px 12px',
+                border: '1px solid var(--np-border)',
+              }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  marginBottom: relateWithExisting ? 10 : 0,
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={relateWithExisting}
+                    onChange={e => setRelateWithExisting(e.target.checked)}
+                  />
+                  <span>Establish Relationship Link in Graph</span>
+                </label>
+
+                {relateWithExisting && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 10 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--np-text-tertiary)', marginBottom: 2 }}>
+                        Connect to Leader
+                      </label>
+                      <select
+                        className="form-input form-select"
+                        value={relatedContactId}
+                        onChange={e => setRelatedContactId(e.target.value)}
+                        style={{ width: '100%', fontSize: '0.8rem' }}
+                      >
+                        <option value="">Select contact...</option>
+                        {contacts.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.full_name} ({c.company || 'Executive'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--np-text-tertiary)', marginBottom: 2 }}>
+                        Relationship Type
+                      </label>
+                      <select
+                        className="form-input form-select"
+                        value={relationType}
+                        onChange={e => setRelationType(e.target.value as RelationshipType)}
+                        style={{ width: '100%', fontSize: '0.8rem' }}
+                      >
+                        <option value="colleague">Colleague</option>
+                        <option value="advisor">Advisor</option>
+                        <option value="co_investor">Co-investor</option>
+                        <option value="partner">Partner</option>
+                        <option value="introduced_by">Introduced by</option>
+                        <option value="mentor">Mentor</option>
+                        <option value="client">Client</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--np-text-secondary)', marginBottom: 4 }}>
                   Initial Notes &amp; Context
@@ -500,6 +607,66 @@ export default function ContactsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Contact Confirmation Modal */}
+      {contactToDelete && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 20,
+          }}
+          onClick={() => setContactToDelete(null)}
+        >
+          <div
+            className="card animate-scale-in"
+            style={{
+              width: '100%',
+              maxWidth: 440,
+              padding: 24,
+              borderRadius: 18,
+              border: '1px solid var(--np-danger)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--np-danger)', marginBottom: 12 }}>
+              <AlertTriangle size={22} />
+              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.2rem' }}>Delete Contact Record</h3>
+            </div>
+            <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: 20 }}>
+              Are you sure you want to delete <strong>{contactToDelete.full_name}</strong>? This will permanently remove their interaction history and all relationship links from the graph.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setContactToDelete(null)} className="btn btn-ghost btn-sm">
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const name = contactToDelete.full_name;
+                  await netPulseStore.deleteContact(contactToDelete.id);
+                  setContactToDelete(null);
+                  showToast(`Deleted ${name} and related graph edges`);
+                  await loadContacts();
+                }}
+                className="btn btn-sm"
+                style={{
+                  background: 'var(--np-danger)',
+                  color: '#fff',
+                  fontWeight: 700,
+                }}
+              >
+                Confirm Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

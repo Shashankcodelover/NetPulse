@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Building2,
@@ -32,6 +33,10 @@ import {
   Award,
   ExternalLink,
   ArrowRight,
+  Trash2,
+  Share2,
+  Link2,
+  UserCheck,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { netPulseStore } from '@/lib/storage/db';
@@ -40,7 +45,7 @@ import { generateWhatsAppUrl } from '@/lib/whatsapp';
 import { EnrichmentModal } from '@/components/enrichment-modal';
 import { calculatePriorityScore, isContactOverdue, getSuggestedReason, calculateSocialCapitalScore } from '@/lib/scoring';
 import { DEFAULT_SETTINGS } from '@/lib/types';
-import type { Contact, Interaction, RelationshipTier, InteractionType, UserSettings } from '@/lib/types';
+import type { Contact, Interaction, Relationship, RelationshipTier, RelationshipType, InteractionType, UserSettings } from '@/lib/types';
 
 function getAvatarColor(name: string): string {
   const colors = [
@@ -77,6 +82,17 @@ export default function ContactDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Contact>>({});
   const [decayOffset, setDecayOffset] = useState(0);
+  const [allContacts, setAllContacts] = useState<Contact[]>([]);
+  const [relationships, setRelationships] = useState<Relationship[]>([]);
+
+  // Relationship Modal State
+  const [showAddRelModal, setShowAddRelModal] = useState(false);
+  const [targetRelContactId, setTargetRelContactId] = useState('');
+  const [targetRelType, setTargetRelType] = useState<RelationshipType>('colleague');
+  const [targetRelNotes, setTargetRelNotes] = useState('');
+
+  // Delete Contact Modal State
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // New Touchpoint Logger State
   const [showTouchpointModal, setShowTouchpointModal] = useState(false);
@@ -94,11 +110,15 @@ export default function ContactDetailPage() {
     try {
       const found = await netPulseStore.getContactById(contactId);
       const history = await netPulseStore.getInteractions(contactId);
+      const rels = await netPulseStore.getRelationships(contactId);
+      const all = await netPulseStore.getContacts();
       const offset = await netPulseStore.getDecayOffsetDays();
 
       setContact(found);
       setEditData(found || {});
       setInteractions(history);
+      setRelationships(rels);
+      setAllContacts(all);
       setDecayOffset(offset);
     } finally {
       setLoading(false);
@@ -438,6 +458,16 @@ export default function ContactDetailPage() {
                 <button onClick={() => setEditing(true)} className="btn btn-ghost btn-sm" title="Edit Contact Details">
                   <Edit3 size={14} />
                 </button>
+
+                {/* Delete Contact Button */}
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="btn btn-ghost btn-sm"
+                  title="Delete Contact Record"
+                  style={{ color: 'var(--np-danger)' }}
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
           )}
@@ -602,6 +632,144 @@ export default function ContactDetailPage() {
         </p>
       </div>
 
+      {/* Connected Relationships & Executive Network Mesh */}
+      <div
+        className="card animate-fade-in-up"
+        style={{
+          marginBottom: 20,
+          padding: 22,
+          borderRadius: 14,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Share2 size={18} style={{ color: 'var(--np-accent)' }} />
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>
+                Connected Relationships &amp; Graph Mesh ({relationships.length})
+              </h3>
+              <span style={{ fontSize: '0.76rem', color: 'var(--np-text-tertiary)' }}>
+                Active peer edges and strategic connections across your network
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowAddRelModal(true)}
+            className="btn btn-primary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+          >
+            <Plus size={14} /> Connect Leader
+          </button>
+        </div>
+
+        {relationships.length === 0 ? (
+          <div style={{ padding: '24px 20px', textAlign: 'center', background: 'var(--np-bg-secondary)', borderRadius: 10 }}>
+            <Link2 size={28} style={{ margin: '0 auto 8px auto', opacity: 0.5, color: 'var(--np-accent)' }} />
+            <p style={{ fontSize: '0.86rem', color: 'var(--np-text-secondary)', margin: 0 }}>
+              No peer connections linked yet for this executive.
+            </p>
+            <button
+              onClick={() => setShowAddRelModal(true)}
+              className="btn btn-secondary btn-sm"
+              style={{ marginTop: 10, fontSize: '0.78rem' }}
+            >
+              Establish First Connection
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+            {relationships.map(rel => {
+              const otherId = rel.from_contact_id === contact.id ? rel.to_contact_id : rel.from_contact_id;
+              const other = allContacts.find(c => c.id === otherId);
+              if (!other) return null;
+
+              return (
+                <div
+                  key={rel.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 14px',
+                    borderRadius: 10,
+                    background: 'var(--np-bg-secondary)',
+                    border: '1px solid var(--np-border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                    <div
+                      className="contact-avatar"
+                      style={{
+                        background: getAvatarColor(other.full_name),
+                        width: 38,
+                        height: 38,
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {getInitials(other.full_name)}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Link
+                          href={`/contacts/${other.id}`}
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '0.88rem',
+                            color: 'var(--np-text-primary)',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {other.full_name}
+                        </Link>
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: '0.65rem',
+                            textTransform: 'uppercase',
+                            fontWeight: 800,
+                            padding: '2px 6px',
+                            background: 'rgba(79, 70, 229, 0.12)',
+                            color: 'var(--np-accent)',
+                          }}
+                        >
+                          {rel.type.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--np-text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {other.title || other.company || 'Executive Partner'}
+                      </div>
+                      {rel.notes && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--np-text-secondary)', marginTop: 2, fontStyle: 'italic' }}>
+                          &ldquo;{rel.notes}&rdquo;
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      await netPulseStore.deleteRelationship(rel.id);
+                      showToast(`Severed relationship connection with ${other.full_name}`);
+                      await loadDossier();
+                    }}
+                    className="btn-ghost"
+                    title="Sever relationship connection"
+                    style={{ padding: '4px 6px', color: 'var(--np-text-tertiary)', borderRadius: 4, marginLeft: 8 }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Grid: Relationship Journal & Quick Note */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
         {/* Left Column: Interaction Journal */}
@@ -666,9 +834,23 @@ export default function ContactDetailPage() {
                         <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--np-text-secondary)' }}>
                           {interaction.type}
                         </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--np-text-tertiary)' }}>
-                          {format(new Date(interaction.created_at), 'MMM d, yyyy')}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--np-text-tertiary)' }}>
+                            {format(new Date(interaction.created_at), 'MMM d, yyyy')}
+                          </span>
+                          <button
+                            onClick={async () => {
+                              await netPulseStore.deleteInteraction(interaction.id);
+                              showToast('Removed touchpoint from journal');
+                              await loadDossier();
+                            }}
+                            className="btn-ghost"
+                            title="Delete touchpoint"
+                            style={{ padding: '2px 4px', color: 'var(--np-text-tertiary)', borderRadius: 4 }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
                       <p style={{ fontSize: '0.88rem', color: 'var(--np-text-primary)', margin: 0, lineHeight: 1.5 }}>
                         {interaction.content || 'Logged interaction'}
@@ -866,6 +1048,193 @@ export default function ContactDetailPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
               >
                 <CheckCircle2 size={14} /> Log & Reset Clock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Connect Relationship Modal */}
+      {showAddRelModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 20,
+          }}
+          onClick={() => setShowAddRelModal(false)}
+        >
+          <div
+            className="card animate-scale-in"
+            style={{
+              width: '100%',
+              maxWidth: 460,
+              padding: 24,
+              borderRadius: 18,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Share2 size={18} style={{ color: 'var(--np-accent)' }} />
+                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.2rem' }}>Establish Relationship Edge</h3>
+              </div>
+              <button onClick={() => setShowAddRelModal(false)} className="btn-ghost" style={{ padding: 6 }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!targetRelContactId) return;
+
+                const targetContact = allContacts.find(c => c.id === targetRelContactId);
+                await netPulseStore.saveRelationship({
+                  id: `rel-${Date.now()}`,
+                  from_contact_id: contact.id,
+                  to_contact_id: targetRelContactId,
+                  type: targetRelType,
+                  notes: targetRelNotes.trim() || null,
+                  created_at: new Date().toISOString(),
+                });
+
+                setShowAddRelModal(false);
+                setTargetRelContactId('');
+                setTargetRelNotes('');
+                showToast(`Connected ${contact.full_name} to ${targetContact?.full_name || 'Leader'}`);
+                await loadDossier();
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            >
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--np-text-secondary)', marginBottom: 4 }}>
+                  Connect {contact.full_name} To:
+                </label>
+                <select
+                  className="form-input form-select"
+                  required
+                  value={targetRelContactId}
+                  onChange={e => setTargetRelContactId(e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">Select an executive from directory...</option>
+                  {allContacts
+                    .filter(c => c.id !== contact.id)
+                    .map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.full_name} — {c.title || c.company || 'Executive'}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--np-text-secondary)', marginBottom: 4 }}>
+                  Relationship Classification:
+                </label>
+                <select
+                  className="form-input form-select"
+                  value={targetRelType}
+                  onChange={e => setTargetRelType(e.target.value as RelationshipType)}
+                  style={{ width: '100%' }}
+                >
+                  <option value="colleague">Colleague (Same firm / working group)</option>
+                  <option value="advisor">Advisor (Strategic counsel / board)</option>
+                  <option value="co_investor">Co-investor (Syndicate / deal partner)</option>
+                  <option value="partner">Partner (Commercial vendor / ecosystem)</option>
+                  <option value="introduced_by">Introduced by (Warm referral source)</option>
+                  <option value="mentor">Mentor (Senior industry champion)</option>
+                  <option value="client">Client (Enterprise customer account)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--np-text-secondary)', marginBottom: 4 }}>
+                  Context &amp; Collaboration Notes:
+                </label>
+                <textarea
+                  className="form-input form-textarea"
+                  rows={2}
+                  value={targetRelNotes}
+                  onChange={e => setTargetRelNotes(e.target.value)}
+                  placeholder="e.g. Co-invested in seed round; quarterly syncs..."
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+                <button type="button" onClick={() => setShowAddRelModal(false)} className="btn btn-ghost btn-sm">
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm" style={{ fontWeight: 700 }}>
+                  Link Connection
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Contact Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 20,
+          }}
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="card animate-scale-in"
+            style={{
+              width: '100%',
+              maxWidth: 440,
+              padding: 24,
+              borderRadius: 18,
+              border: '1px solid var(--np-danger)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--np-danger)', marginBottom: 12 }}>
+              <AlertTriangle size={22} />
+              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.2rem' }}>Delete Contact Dossier</h3>
+            </div>
+            <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: 20 }}>
+              Are you sure you want to permanently delete <strong>{contact.full_name}</strong>? This action will erase all logged touchpoints, notes, and relationship links connected to this leader.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowDeleteConfirm(false)} className="btn btn-ghost btn-sm">
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const name = contact.full_name;
+                  await netPulseStore.deleteContact(contact.id);
+                  setShowDeleteConfirm(false);
+                  router.push('/contacts');
+                }}
+                className="btn btn-sm"
+                style={{
+                  background: 'var(--np-danger)',
+                  color: '#fff',
+                  fontWeight: 700,
+                }}
+              >
+                Permanently Delete
               </button>
             </div>
           </div>

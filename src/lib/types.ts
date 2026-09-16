@@ -35,6 +35,24 @@ export interface Interaction {
   created_at: string;
 }
 
+export type RelationshipType =
+  | 'colleague'
+  | 'introduced_by'
+  | 'advisor'
+  | 'co_investor'
+  | 'partner'
+  | 'mentor'
+  | 'client';
+
+export interface Relationship {
+  id: string;
+  from_contact_id: string;
+  to_contact_id: string;
+  type: RelationshipType;
+  notes?: string | null;
+  created_at: string;
+}
+
 export interface PriorityScore {
   id: string;
   contact_id: string;

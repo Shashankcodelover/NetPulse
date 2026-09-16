@@ -3,12 +3,12 @@
 // Guarantees zero-loss client persistence, offline resilience, and fast state access.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import type { Contact, Interaction, UserSettings } from '@/lib/types';
+import type { Contact, Interaction, Relationship, UserSettings } from '@/lib/types';
 import { DEMO_CONTACTS } from '@/lib/demo-data';
 import { DEFAULT_SETTINGS } from '@/lib/types';
 
 const DB_NAME = 'netpulse_db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export const INITIAL_USER_SETTINGS: UserSettings = {
   ...DEFAULT_SETTINGS,
@@ -61,9 +61,53 @@ export const DEMO_INTERACTIONS: Interaction[] = [
   },
 ];
 
+export const DEMO_RELATIONSHIPS: Relationship[] = [
+  {
+    id: 'rel-1',
+    from_contact_id: 'demo-1', // Dr. Elena Rostova
+    to_contact_id: 'demo-2',   // Marcus Vance
+    type: 'advisor',
+    notes: 'Advises Benchmark on foundation AI models and compute architecture.',
+    created_at: '2026-06-01T10:00:00Z',
+  },
+  {
+    id: 'rel-2',
+    from_contact_id: 'demo-2', // Marcus Vance
+    to_contact_id: 'demo-3',   // Aria Chen
+    type: 'co_investor',
+    notes: 'Co-led Series A syndicate in distributed real-time data streaming.',
+    created_at: '2026-06-15T14:30:00Z',
+  },
+  {
+    id: 'rel-3',
+    from_contact_id: 'demo-3', // Aria Chen
+    to_contact_id: 'demo-4',   // Alexander Wright
+    type: 'colleague',
+    notes: 'Collaborated on cloud latency optimization initiatives.',
+    created_at: '2026-07-01T09:00:00Z',
+  },
+  {
+    id: 'rel-4',
+    from_contact_id: 'demo-4', // Alexander Wright
+    to_contact_id: 'demo-5',   // Tanvi Kulkarni
+    type: 'partner',
+    notes: 'Enterprise vendor partnership between Microsoft and Databricks.',
+    created_at: '2026-07-10T11:20:00Z',
+  },
+  {
+    id: 'rel-5',
+    from_contact_id: 'demo-1', // Dr. Elena Rostova
+    to_contact_id: 'demo-6',   // David Sterling
+    type: 'introduced_by',
+    notes: 'Introduced by Elena during AI Safety Summit in Geneva.',
+    created_at: '2026-07-18T16:45:00Z',
+  },
+];
+
 export interface NetPulseDBData {
   contacts: Contact[];
   interactions: Interaction[];
+  relationships: Relationship[];
   settings: UserSettings;
   decayOffsetDays: number;
   stageOverrides: Record<string, string>; // contactId -> stage name
@@ -74,6 +118,7 @@ class NetPulseStore {
   private memoryFallback: NetPulseDBData = {
     contacts: [...DEMO_CONTACTS],
     interactions: [...DEMO_INTERACTIONS],
+    relationships: [...DEMO_RELATIONSHIPS],
     settings: { ...INITIAL_USER_SETTINGS },
     decayOffsetDays: 0,
     stageOverrides: {},
@@ -103,6 +148,9 @@ class NetPulseStore {
         }
         if (!db.objectStoreNames.contains('interactions')) {
           db.createObjectStore('interactions', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('relationships')) {
+          db.createObjectStore('relationships', { keyPath: 'id' });
         }
         if (!db.objectStoreNames.contains('meta')) {
           db.createObjectStore('meta', { keyPath: 'key' });
@@ -144,7 +192,11 @@ class NetPulseStore {
   private async seedInitialData(db: IDBDatabase): Promise<void> {
     return new Promise((resolve) => {
       try {
-        const tx = db.transaction(['contacts', 'interactions', 'meta'], 'readwrite');
+        const stores = ['contacts', 'interactions', 'meta'];
+        if (db.objectStoreNames.contains('relationships')) {
+          stores.push('relationships');
+        }
+        const tx = db.transaction(stores, 'readwrite');
         const contactStore = tx.objectStore('contacts');
         const interactionStore = tx.objectStore('interactions');
         const metaStore = tx.objectStore('meta');
@@ -155,6 +207,13 @@ class NetPulseStore {
 
         for (const inter of DEMO_INTERACTIONS) {
           interactionStore.put(inter);
+        }
+
+        if (db.objectStoreNames.contains('relationships')) {
+          const relStore = tx.objectStore('relationships');
+          for (const rel of DEMO_RELATIONSHIPS) {
+            relStore.put(rel);
+          }
         }
 
         metaStore.put({ key: 'decayOffsetDays', value: 0 });
@@ -209,6 +268,55 @@ class NetPulseStore {
       const idx = this.memoryFallback.contacts.findIndex(c => c.id === contact.id);
       if (idx >= 0) this.memoryFallback.contacts[idx] = contact;
       else this.memoryFallback.contacts.push(contact);
+    }
+  }
+
+  async deleteContact(contactId: string): Promise<void> {
+    try {
+      const db = await this.initDB();
+      await new Promise<void>((resolve, reject) => {
+        const stores = ['contacts', 'interactions'];
+        if (db.objectStoreNames.contains('relationships')) stores.push('relationships');
+        const tx = db.transaction(stores, 'readwrite');
+        const contactStore = tx.objectStore('contacts');
+        const interactionStore = tx.objectStore('interactions');
+
+        contactStore.delete(contactId);
+
+        const reqInt = interactionStore.getAll();
+        reqInt.onsuccess = () => {
+          const ints: Interaction[] = reqInt.result || [];
+          ints.filter(i => i.contact_id === contactId).forEach(i => interactionStore.delete(i.id));
+        };
+
+        if (db.objectStoreNames.contains('relationships')) {
+          const relStore = tx.objectStore('relationships');
+          const reqRel = relStore.getAll();
+          reqRel.onsuccess = () => {
+            const rels: Relationship[] = reqRel.result || [];
+            rels.filter(r => r.from_contact_id === contactId || r.to_contact_id === contactId)
+                .forEach(r => relStore.delete(r.id));
+          };
+        }
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch {
+      // fallback
+    }
+
+    this.memoryFallback.contacts = this.memoryFallback.contacts.filter(c => c.id !== contactId);
+    this.memoryFallback.interactions = this.memoryFallback.interactions.filter(i => i.contact_id !== contactId);
+    if (this.memoryFallback.relationships) {
+      this.memoryFallback.relationships = this.memoryFallback.relationships.filter(
+        r => r.from_contact_id !== contactId && r.to_contact_id !== contactId
+      );
+    }
+    delete this.memoryFallback.stageOverrides[contactId];
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
     }
   }
 
@@ -319,6 +427,121 @@ class NetPulseStore {
         updated_at: new Date().toISOString(),
       };
       await this.saveContact(updated);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
+    }
+  }
+
+  async deleteInteraction(interactionId: string): Promise<void> {
+    try {
+      const db = await this.initDB();
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction('interactions', 'readwrite');
+        const store = tx.objectStore('interactions');
+        const req = store.delete(interactionId);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch {
+      // fallback
+    }
+
+    this.memoryFallback.interactions = this.memoryFallback.interactions.filter(i => i.id !== interactionId);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
+    }
+  }
+
+  // ── Public Relationship API ──
+
+  async getRelationships(contactId?: string): Promise<Relationship[]> {
+    try {
+      const db = await this.initDB();
+      return new Promise((resolve) => {
+        if (!db.objectStoreNames.contains('relationships')) {
+          const all = this.memoryFallback.relationships || DEMO_RELATIONSHIPS;
+          return resolve(contactId 
+            ? all.filter(r => r.from_contact_id === contactId || r.to_contact_id === contactId)
+            : all
+          );
+        }
+        const tx = db.transaction('relationships', 'readonly');
+        const store = tx.objectStore('relationships');
+        const req = store.getAll();
+        req.onsuccess = () => {
+          const all: Relationship[] = req.result && req.result.length > 0 ? req.result : (this.memoryFallback.relationships || DEMO_RELATIONSHIPS);
+          if (contactId) {
+            resolve(all.filter(r => r.from_contact_id === contactId || r.to_contact_id === contactId));
+          } else {
+            resolve(all);
+          }
+        };
+        req.onerror = () => {
+          const all = this.memoryFallback.relationships || DEMO_RELATIONSHIPS;
+          if (contactId) {
+            resolve(all.filter(r => r.from_contact_id === contactId || r.to_contact_id === contactId));
+          } else {
+            resolve(all);
+          }
+        };
+      });
+    } catch {
+      const all = this.memoryFallback.relationships || DEMO_RELATIONSHIPS;
+      if (contactId) {
+        return all.filter(r => r.from_contact_id === contactId || r.to_contact_id === contactId);
+      }
+      return all;
+    }
+  }
+
+  async saveRelationship(relationship: Relationship): Promise<void> {
+    try {
+      const db = await this.initDB();
+      if (db.objectStoreNames.contains('relationships')) {
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction('relationships', 'readwrite');
+          const store = tx.objectStore('relationships');
+          const req = store.put(relationship);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+    } catch {
+      // fallback
+    }
+
+    const list = this.memoryFallback.relationships || [];
+    const idx = list.findIndex(r => r.id === relationship.id);
+    if (idx >= 0) list[idx] = relationship;
+    else list.push(relationship);
+    this.memoryFallback.relationships = list;
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
+    }
+  }
+
+  async deleteRelationship(relationshipId: string): Promise<void> {
+    try {
+      const db = await this.initDB();
+      if (db.objectStoreNames.contains('relationships')) {
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction('relationships', 'readwrite');
+          const store = tx.objectStore('relationships');
+          const req = store.delete(relationshipId);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+    } catch {
+      // fallback
+    }
+
+    if (this.memoryFallback.relationships) {
+      this.memoryFallback.relationships = this.memoryFallback.relationships.filter(r => r.id !== relationshipId);
     }
 
     if (typeof window !== 'undefined') {
@@ -439,7 +662,9 @@ class NetPulseStore {
     try {
       const db = await this.initDB();
       await new Promise<void>((resolve) => {
-        const tx = db.transaction(['contacts', 'interactions', 'meta'], 'readwrite');
+        const stores = ['contacts', 'interactions', 'meta'];
+        if (db.objectStoreNames.contains('relationships')) stores.push('relationships');
+        const tx = db.transaction(stores, 'readwrite');
         const contactStore = tx.objectStore('contacts');
         const interactionStore = tx.objectStore('interactions');
         const metaStore = tx.objectStore('meta');
@@ -454,6 +679,14 @@ class NetPulseStore {
           interactionStore.put(inter);
         }
 
+        if (db.objectStoreNames.contains('relationships')) {
+          const relStore = tx.objectStore('relationships');
+          relStore.clear();
+          for (const rel of DEMO_RELATIONSHIPS) {
+            relStore.put(rel);
+          }
+        }
+
         metaStore.put({ key: 'decayOffsetDays', value: 0 });
         metaStore.put({ key: 'stageOverrides', value: {} });
         metaStore.put({ key: 'settings', value: INITIAL_USER_SETTINGS });
@@ -465,6 +698,7 @@ class NetPulseStore {
       this.memoryFallback = {
         contacts: [...DEMO_CONTACTS],
         interactions: [...DEMO_INTERACTIONS],
+        relationships: [...DEMO_RELATIONSHIPS],
         settings: { ...INITIAL_USER_SETTINGS },
         decayOffsetDays: 0,
         stageOverrides: {},
