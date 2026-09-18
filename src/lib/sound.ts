@@ -145,6 +145,120 @@ class SoundSynthesizer {
       // AudioContext unavailable
     }
   }
+
+  // 🌌 Quantum Co-Founder Entanglement Hum (Deep binaural harmonic pulse)
+  public playQuantumEntangleHum() {
+    if (!this.enabled) return;
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(216, now); // 432Hz subharmonic
+      osc1.frequency.exponentialRampToValueAtTime(432, now + 0.35);
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(528, now); // 528Hz Solfeggio frequency
+      osc2.frequency.exponentialRampToValueAtTime(639, now + 0.35);
+
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.6);
+      osc2.stop(now + 0.6);
+    } catch {}
+  }
+
+  // ⚡ Plasma Laser Beam Connect Sound (Sci-fi cybernetic beam sweep)
+  public playLaserBeamConnect() {
+    if (!this.enabled) return;
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(1400, now + 0.18);
+
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch {}
+  }
+
+  // 🔮 Pure Crystalline Resonance Chime scaled to link score (0.0 - 1.0)
+  public playResonanceChime(ratio = 0.8) {
+    if (!this.enabled) return;
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const baseFreq = 520 + Math.min(Math.max(ratio, 0), 1) * 440; // 520Hz - 960Hz
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.3);
+
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } catch {}
+  }
+
+  // 🎭 Persona Switch Stereophonic Whoosh
+  public playPersonaSwitchWhoosh() {
+    if (!this.enabled) return;
+    try {
+      const ctx = this.getContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+      osc.frequency.exponentialRampToValueAtTime(600, now + 0.3);
+
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } catch {}
+  }
 }
 
 export const soundFx = new SoundSynthesizer();

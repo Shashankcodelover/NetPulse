@@ -3,9 +3,35 @@
 // Guarantees zero-loss client persistence, offline resilience, and fast state access.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import type { Contact, Interaction, Relationship, UserSettings } from '@/lib/types';
+import type { Contact, Interaction, Relationship, UserSettings, UserPersona } from '@/lib/types';
 import { DEMO_CONTACTS } from '@/lib/demo-data';
 import { DEFAULT_SETTINGS } from '@/lib/types';
+
+export const PERSONA_ALEX: UserPersona = {
+  id: 'user-alex',
+  name: 'Alex Mercer',
+  title: 'Founding Partner',
+  company: 'Apex DeepTech Ventures',
+  email: 'alex.mercer@apexventures.io',
+  avatarGradient: 'linear-gradient(135deg, #06b6d4, #6366f1)',
+  initials: 'AM',
+  focus: 'AI Infrastructure & Swarms',
+  networkRole: 'Venture Partner',
+};
+
+export const PERSONA_ELENA: UserPersona = {
+  id: 'user-elena',
+  name: 'Dr. Elena Rostova',
+  title: 'Founder & Chief Architect',
+  company: 'QuantumFoundry',
+  email: 'elena.rostova@quantumfoundry.ai',
+  avatarGradient: 'linear-gradient(135deg, #10b981, #8b5cf6)',
+  initials: 'ER',
+  focus: 'Quantum ML & Cryptography',
+  networkRole: 'Quantum Architect',
+};
+
+export const DEFAULT_PERSONAS: UserPersona[] = [PERSONA_ALEX, PERSONA_ELENA];
 
 const DB_NAME = 'netpulse_db';
 const DB_VERSION = 4;
@@ -13,7 +39,7 @@ const DB_VERSION = 4;
 export const INITIAL_USER_SETTINGS: UserSettings = {
   ...DEFAULT_SETTINGS,
   id: 'local-settings',
-  user_id: 'local-user',
+  user_id: 'user-alex',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
@@ -549,6 +575,247 @@ class NetPulseStore {
     }
   }
 
+  // ── Multi-User Persona Identity API ──
+
+  getActivePersona(): UserPersona {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('netpulse_active_persona');
+      if (stored === 'user-elena') return PERSONA_ELENA;
+      return PERSONA_ALEX;
+    }
+    return PERSONA_ALEX;
+  }
+
+  setActivePersona(personaId: string): UserPersona {
+    const selected = personaId === 'user-elena' ? PERSONA_ELENA : PERSONA_ALEX;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('netpulse_active_persona', selected.id);
+      window.dispatchEvent(new CustomEvent('netpulse:persona-switched', { detail: selected }));
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
+    }
+    return selected;
+  }
+
+  // ── Creative Virtuality Linking Engine (Zero-Manual Auto-Synthesis) ──
+
+  async autoSynthesizeVirtualityMesh(): Promise<{ linksCreated: number; resonanceAvg: number }> {
+    const contacts = await this.getContacts();
+    const activePersona = this.getActivePersona();
+
+    const elena = contacts.find(c => c.full_name.includes('Elena') || c.id === 'demo-1');
+    const marcus = contacts.find(c => c.full_name.includes('Marcus') || c.id === 'demo-2');
+    const aria = contacts.find(c => c.full_name.includes('Aria') || c.id === 'demo-3');
+    const rohan = contacts.find(c => c.full_name.includes('Rohan') || c.id === 'demo-4');
+    const sarah = contacts.find(c => c.full_name.includes('Sarah') || c.id === 'demo-5');
+
+    const synthesizedLinks: Relationship[] = [
+      {
+        id: 'vlink-quantum-1',
+        from_contact_id: elena?.id || 'demo-1',
+        to_contact_id: marcus?.id || 'demo-2',
+        type: 'quantum_entanglement',
+        resonance: 98.4,
+        virtuality_layer: 'quantum',
+        status: 'entangled',
+        pulse_rate_hz: 528,
+        initiator_user_id: 'user-alex',
+        target_user_id: 'user-elena',
+        shared_tags: ['Quantum-ML', 'Compute-Syndicate', 'Autonomous-Swarms'],
+        notes: '🌌 Quantum Co-Founder Entanglement: Synchronized algorithmic health & shared destiny. When compute clusters scale, cadence frequency locks in resonance.',
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'vlink-synaptic-2',
+        from_contact_id: aria?.id || 'demo-3',
+        to_contact_id: elena?.id || 'demo-1',
+        type: 'synaptic_resonator',
+        resonance: 94.2,
+        virtuality_layer: 'synaptic',
+        status: 'entangled',
+        pulse_rate_hz: 639,
+        initiator_user_id: 'user-elena',
+        target_user_id: 'user-alex',
+        shared_tags: ['Cognitive-Vibe', 'Distributed-Consensus', 'Zero-Latency'],
+        notes: '🧬 Synaptic Resonance Link: Cognitive AI pattern alignment. Mirroring microservice architecture and idempotent token settling across Stripe & QuantumFoundry.',
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'vlink-orbit-3',
+        from_contact_id: marcus?.id || 'demo-2',
+        to_contact_id: rohan?.id || 'demo-4',
+        type: 'gravitational_orbit',
+        resonance: 91.7,
+        virtuality_layer: 'gravitational',
+        status: 'active',
+        pulse_rate_hz: 432,
+        initiator_user_id: 'user-alex',
+        target_user_id: 'user-alex',
+        shared_tags: ['Deal-Gravity', 'Series-B-Syndicate', 'B2B-Telemetry'],
+        notes: '🪐 Gravitational Deal Orbit: High orbital velocity syndication channel. Pulling $18M ARR infrastructure rounds into mutual co-investment trajectories.',
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'vlink-stealth-4',
+        from_contact_id: sarah?.id || 'demo-5',
+        to_contact_id: aria?.id || 'demo-3',
+        type: 'stealth_endorsement',
+        resonance: 96.0,
+        virtuality_layer: 'stealth',
+        status: 'entangled',
+        pulse_rate_hz: 741,
+        initiator_user_id: 'user-elena',
+        target_user_id: 'user-alex',
+        shared_tags: ['ZK-Vouch', 'Edge-Runtime', 'SSR-Hardening'],
+        notes: '⚡ Zero-Knowledge Stealth Vouch: Anonymous high-trust operator endorsement with verifiable cryptographic proof for enterprise platform governance.',
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'vlink-holosphere-5',
+        from_contact_id: elena?.id || 'demo-1',
+        to_contact_id: sarah?.id || 'demo-5',
+        type: 'holosphere_anchor',
+        resonance: 92.5,
+        virtuality_layer: 'astral',
+        status: 'active',
+        pulse_rate_hz: 852,
+        initiator_user_id: 'user-alex',
+        target_user_id: 'user-elena',
+        shared_tags: ['3D-Spatial-Mesh', 'Multi-Tenant-Cloud', 'Virtual-Anchor'],
+        notes: '🔮 Holosphere Virtuality Anchor: Spatial persistent node in holographic memory matrix with real-time harmonic heartbeat.',
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'vlink-vortex-6',
+        from_contact_id: rohan?.id || 'demo-4',
+        to_contact_id: sarah?.id || 'demo-5',
+        type: 'value_vortex',
+        resonance: 89.8,
+        virtuality_layer: 'quantum',
+        status: 'active',
+        pulse_rate_hz: 528,
+        initiator_user_id: 'user-alex',
+        target_user_id: 'user-alex',
+        shared_tags: ['Social-Capital-Balance', 'Intro-Pipeline', 'Mutual-Leverage'],
+        notes: '🌀 Reciprocal Value Vortex: Bi-directional high-yield introduction pipeline preventing one-sided relational debt.',
+        created_at: new Date().toISOString(),
+      },
+    ];
+
+    for (const link of synthesizedLinks) {
+      await this.saveRelationship(link);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
+    }
+
+    const avgRes = Math.round(synthesizedLinks.reduce((sum, l) => sum + (l.resonance || 90), 0) / synthesizedLinks.length);
+    return { linksCreated: synthesizedLinks.length, resonanceAvg: avgRes };
+  }
+
+  // 1-Click single link forge preset
+  async forgeVirtualityLink(templateType: 'quantum' | 'orbit' | 'synaptic' | 'stealth'): Promise<Relationship> {
+    const contacts = await this.getContacts();
+    const activePersona = this.getActivePersona();
+
+    const elena = contacts.find(c => c.full_name.includes('Elena') || c.id === 'demo-1') || contacts[0];
+    const marcus = contacts.find(c => c.full_name.includes('Marcus') || c.id === 'demo-2') || contacts[1];
+    const aria = contacts.find(c => c.full_name.includes('Aria') || c.id === 'demo-3') || contacts[2];
+
+    let newLink: Relationship;
+    const now = new Date().toISOString();
+
+    if (templateType === 'quantum') {
+      newLink = {
+        id: `vlink-q-${Date.now()}`,
+        from_contact_id: elena.id,
+        to_contact_id: marcus.id,
+        type: 'quantum_entanglement',
+        resonance: 99.2,
+        virtuality_layer: 'quantum',
+        status: activePersona.id === 'user-alex' ? 'pending_handshake' : 'entangled',
+        pulse_rate_hz: 528,
+        initiator_user_id: activePersona.id,
+        target_user_id: activePersona.id === 'user-alex' ? 'user-elena' : 'user-alex',
+        shared_tags: ['Quantum-Entanglement', 'Synchronized-Destiny', 'Co-Founders'],
+        notes: `🌌 Quantum Co-Founder Entanglement forged by ${activePersona.name}. Synchronized harmonic pulse active at 528 Hz.`,
+        created_at: now,
+      };
+    } else if (templateType === 'orbit') {
+      newLink = {
+        id: `vlink-o-${Date.now()}`,
+        from_contact_id: marcus.id,
+        to_contact_id: aria.id,
+        type: 'gravitational_orbit',
+        resonance: 93.6,
+        virtuality_layer: 'gravitational',
+        status: 'active',
+        pulse_rate_hz: 432,
+        initiator_user_id: activePersona.id,
+        target_user_id: 'user-alex',
+        shared_tags: ['Venture-Gravity', 'Syndicate-Velocity'],
+        notes: `🪐 Gravitational Deal Orbit configured by ${activePersona.name}. High orbital pull on mutual venture pipeline.`,
+        created_at: now,
+      };
+    } else if (templateType === 'synaptic') {
+      newLink = {
+        id: `vlink-s-${Date.now()}`,
+        from_contact_id: elena.id,
+        to_contact_id: aria.id,
+        type: 'synaptic_resonator',
+        resonance: 95.8,
+        virtuality_layer: 'synaptic',
+        status: 'entangled',
+        pulse_rate_hz: 639,
+        initiator_user_id: activePersona.id,
+        target_user_id: 'user-elena',
+        shared_tags: ['Synaptic-Alignment', 'Agentic-Swarm'],
+        notes: `🧬 Synaptic Resonance Link synchronized by ${activePersona.name}. 95.8% cognitive alignment match.`,
+        created_at: now,
+      };
+    } else {
+      newLink = {
+        id: `vlink-z-${Date.now()}`,
+        from_contact_id: aria.id,
+        to_contact_id: elena.id,
+        type: 'stealth_endorsement',
+        resonance: 97.4,
+        virtuality_layer: 'stealth',
+        status: 'entangled',
+        pulse_rate_hz: 741,
+        initiator_user_id: activePersona.id,
+        target_user_id: 'user-alex',
+        shared_tags: ['ZK-Endorsement', 'Cryptographic-Trust'],
+        notes: `⚡ Zero-Knowledge Stealth Vouch sealed by ${activePersona.name} with cryptographic blind signature.`,
+        created_at: now,
+      };
+    }
+
+    await this.saveRelationship(newLink);
+    return newLink;
+  }
+
+  // 1-Click Accept Handshake (e.g. Elena accepts Alex's entanglement)
+  async acceptVirtualityHandshake(linkId: string): Promise<Relationship | null> {
+    const rels = await this.getRelationships();
+    const target = rels.find(r => r.id === linkId);
+    if (!target) return null;
+
+    const updated: Relationship = {
+      ...target,
+      status: 'entangled',
+      resonance: Math.min((target.resonance || 90) + 5.0, 100),
+      notes: (target.notes || '') + ' [✨ Handshake reciprocated & locked into bilateral quantum entanglement.]',
+    };
+
+    await this.saveRelationship(updated);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
+      window.dispatchEvent(new CustomEvent('netpulse:handshake-accepted', { detail: updated }));
+    }
+    return updated;
+  }
+
   // ── Public Settings API ──
 
   async getSettings(): Promise<UserSettings> {
@@ -656,6 +923,10 @@ class NetPulseStore {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
     }
+  }
+
+  async resetToFactoryDefaults(): Promise<void> {
+    return this.resetToBaseline();
   }
 
   async resetToBaseline(): Promise<void> {

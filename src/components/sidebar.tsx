@@ -26,17 +26,20 @@ import {
   Compass,
   Search,
   Share2,
+  Orbit,
 } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { NotificationBell } from '@/components/notification-bell';
+import { PersonaSwitcher } from '@/components/persona-switcher';
 
 const navItems = [
   { href: '/', label: 'Digest', icon: Zap },
+  { href: '/virtuality', label: 'Virtuality 3D', icon: Orbit },
+  { href: '/graph', label: 'Graph', icon: Share2 },
   { href: '/reconnect', label: 'Reconnect', icon: Sparkles },
   { href: '/pipeline', label: 'Pipeline', icon: Kanban },
-  { href: '/graph', label: 'Graph', icon: Share2 },
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/radar', label: 'Radar', icon: Compass },
   { href: '/triage', label: 'Triage', icon: Sparkles },
@@ -146,6 +149,11 @@ export function Sidebar() {
             </h1>
           </div>
           <NotificationBell placement="sidebar" />
+        </div>
+
+        {/* Dual-Persona Identity Switcher */}
+        <div style={{ padding: '0 12px 10px' }}>
+          <PersonaSwitcher />
         </div>
 
         {/* Omnibar / Command Palette Trigger */}

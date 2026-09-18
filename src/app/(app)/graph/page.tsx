@@ -67,6 +67,14 @@ const RELATIONSHIP_COLORS: Record<RelationshipType, string> = {
   partner: '#F59E0B',
   mentor: '#8B5CF6',
   client: '#3B82F6',
+  // Exotic Virtuality Dimensions
+  quantum_entanglement: '#06B6D4',
+  synaptic_resonator: '#8B5CF6',
+  gravitational_orbit: '#F59E0B',
+  stealth_endorsement: '#10B981',
+  holosphere_anchor: '#EC4899',
+  autonomous_probe: '#3B82F6',
+  value_vortex: '#6366F1',
 };
 
 export default function GraphPage() {

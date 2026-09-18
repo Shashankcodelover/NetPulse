@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, Loader2, Zap } from 'lucide-react';
+import { Mail, Lock, Loader2, Zap, Sparkles, Orbit, Atom } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -21,12 +21,19 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const handleInstantDemoLogin = () => {
+  const handlePersonaLogin = (personaId: 'user-alex' | 'user-elena') => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('netplus_demo_mode', 'true');
+      localStorage.setItem('netpulse_active_persona', personaId);
+      window.dispatchEvent(new CustomEvent('netpulse:persona-switched'));
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
     }
-    router.push('/');
+    router.push('/virtuality');
     router.refresh();
+  };
+
+  const handleInstantDemoLogin = () => {
+    handlePersonaLogin('user-alex');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -167,27 +174,120 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Instant Demo Sandbox Login */}
-            <div style={{ marginTop: 16 }}>
-              <button
-                type="button"
-                onClick={handleInstantDemoLogin}
-                className="btn btn-secondary btn-lg"
-                style={{
-                  width: '100%',
-                  background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
-                  border: '1px solid #4f46e5',
-                  color: '#4f46e5',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}
-              >
-                <Zap size={18} />
-                Instant Demo Login (Evaluator / Judge)
-              </button>
+            {/* 2-User Role-Play Identity Quick Login */}
+            <div style={{ marginTop: 20 }}>
+              <div style={{
+                fontSize: '0.72rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                fontWeight: 800,
+                color: 'var(--np-text-tertiary)',
+                marginBottom: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <span>Dual-User Role Play (1-Click)</span>
+                <span style={{ color: 'var(--np-accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Sparkles size={11} /> Zero-Manual Entry
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* User 1: Alex Mercer */}
+                <button
+                  type="button"
+                  onClick={() => handlePersonaLogin('user-alex')}
+                  className="btn btn-secondary"
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%)',
+                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#6366f1'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)'}
+                >
+                  <div style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #06b6d4, #6366f1)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    flexShrink: 0,
+                  }}>
+                    AM
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--np-text-primary)' }}>
+                      Alex Mercer (Venture Partner)
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--np-text-secondary)' }}>
+                      Apex DeepTech Ventures • AI Infra &amp; Swarms
+                    </div>
+                  </div>
+                  <Orbit size={16} style={{ color: '#6366f1' }} />
+                </button>
+
+                {/* User 2: Dr. Elena Rostova */}
+                <button
+                  type="button"
+                  onClick={() => handlePersonaLogin('user-elena')}
+                  className="btn btn-secondary"
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)'}
+                >
+                  <div style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #10b981, #8b5cf6)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    flexShrink: 0,
+                  }}>
+                    ER
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--np-text-primary)' }}>
+                      Dr. Elena Rostova (Quantum Architect)
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--np-text-secondary)' }}>
+                      QuantumFoundry • Quantum ML &amp; Cryptography
+                    </div>
+                  </div>
+                  <Atom size={16} style={{ color: '#10b981' }} />
+                </button>
+              </div>
             </div>
 
             {/* Divider */}

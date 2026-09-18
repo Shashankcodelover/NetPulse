@@ -42,7 +42,15 @@ export type RelationshipType =
   | 'co_investor'
   | 'partner'
   | 'mentor'
-  | 'client';
+  | 'client'
+  // Creative Virtuality Dimensions:
+  | 'quantum_entanglement'     // 🌌 Quantum Co-Founder Entanglement
+  | 'synaptic_resonator'       // 🧬 Synaptic Resonance Link
+  | 'gravitational_orbit'      // 🪐 Gravitational Deal Orbit
+  | 'stealth_endorsement'      // ⚡ Zero-Knowledge Stealth Vouch
+  | 'holosphere_anchor'        // 🔮 Holosphere Virtuality Anchor
+  | 'autonomous_probe'         // 🛰️ Autonomous Serendipity Probe
+  | 'value_vortex';            // 🌀 Reciprocal Value Vortex
 
 export interface Relationship {
   id: string;
@@ -51,6 +59,26 @@ export interface Relationship {
   type: RelationshipType;
   notes?: string | null;
   created_at: string;
+  // Creative Virtuality Enhancements
+  resonance?: number;          // 0 - 100% sync frequency
+  virtuality_layer?: 'quantum' | 'synaptic' | 'gravitational' | 'astral' | 'stealth';
+  status?: 'active' | 'pending_handshake' | 'entangled' | 'dormant';
+  pulse_rate_hz?: number;      // e.g. 432Hz, 528Hz harmonic frequency
+  initiator_user_id?: string;
+  target_user_id?: string;
+  shared_tags?: string[];
+}
+
+export interface UserPersona {
+  id: string;
+  name: string;
+  title: string;
+  company: string;
+  email: string;
+  avatarGradient: string;
+  initials: string;
+  focus: string;
+  networkRole: 'Venture Partner' | 'Quantum Architect';
 }
 
 export interface PriorityScore {
