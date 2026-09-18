@@ -1,5 +1,7 @@
 # ⚡ NetPulse CRM — Microsoft Imagine Cup 2026 World Championship
 
+> 🔗 **Live Demo:** [**https://netpulse.shashankj.tech**](https://netpulse.shashankj.tech)
+
 > **Never let a high-value connection go cold.**  
 > *The AI-native personal relationship steward with algorithmic half-life decay, autonomous dossiers, and multi-channel outreach.*
 
