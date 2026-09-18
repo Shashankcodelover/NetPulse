@@ -1005,6 +1005,252 @@ class NetPulseStore {
     };
     await this.saveInteraction(newInter);
   }
+
+  // ── Enterprise Governance & Snapshot Methods ──
+
+  async getStorageTelemetry(): Promise<{
+    contactsCount: number;
+    interactionsCount: number;
+    relationshipsCount: number;
+    virtualityLinksCount: number;
+    decayOffsetDays: number;
+    activePersona: string;
+    estimatedBytes: number;
+  }> {
+    const contacts = await this.getContacts();
+    const interactions = await this.getInteractions();
+    const relationships = await this.getRelationships();
+    const decayOffsetDays = await this.getDecayOffsetDays();
+    const virtualityLinksCount = relationships.filter(r => r.id.startsWith('vlink-')).length;
+
+    const payload = JSON.stringify({ contacts, interactions, relationships });
+    const estimatedBytes = new Blob([payload]).size;
+
+    return {
+      contactsCount: contacts.length,
+      interactionsCount: interactions.length,
+      relationshipsCount: relationships.length,
+      virtualityLinksCount,
+      decayOffsetDays,
+      activePersona: this.getActivePersona().name,
+      estimatedBytes,
+    };
+  }
+
+  async exportDatabaseSnapshot(): Promise<{
+    version: number;
+    exportedAt: string;
+    contacts: Contact[];
+    interactions: Interaction[];
+    relationships: Relationship[];
+    settings: UserSettings;
+    stageOverrides: Record<string, string>;
+    decayOffsetDays: number;
+  }> {
+    const contacts = await this.getContacts();
+    const interactions = await this.getInteractions();
+    const relationships = await this.getRelationships();
+    const settings = await this.getSettings();
+    const stageOverrides = await this.getStageOverrides();
+    const decayOffsetDays = await this.getDecayOffsetDays();
+
+    return {
+      version: DB_VERSION,
+      exportedAt: new Date().toISOString(),
+      contacts,
+      interactions,
+      relationships,
+      settings,
+      stageOverrides,
+      decayOffsetDays,
+    };
+  }
+
+  async importDatabaseSnapshot(bundle: {
+    contacts?: Contact[];
+    interactions?: Interaction[];
+    relationships?: Relationship[];
+    settings?: UserSettings;
+    stageOverrides?: Record<string, string>;
+    decayOffsetDays?: number;
+  }): Promise<{ importedContacts: number; importedInteractions: number; importedRelationships: number }> {
+    const contacts = bundle.contacts || [];
+    const interactions = bundle.interactions || [];
+    const relationships = bundle.relationships || [];
+
+    try {
+      const db = await this.initDB();
+      await new Promise<void>((resolve, reject) => {
+        const stores = ['contacts', 'interactions', 'meta'];
+        if (db.objectStoreNames.contains('relationships')) stores.push('relationships');
+        const tx = db.transaction(stores, 'readwrite');
+
+        const contactStore = tx.objectStore('contacts');
+        const interactionStore = tx.objectStore('interactions');
+        const metaStore = tx.objectStore('meta');
+
+        contactStore.clear();
+        for (const c of contacts) contactStore.put(c);
+
+        interactionStore.clear();
+        for (const i of interactions) interactionStore.put(i);
+
+        if (db.objectStoreNames.contains('relationships')) {
+          const relStore = tx.objectStore('relationships');
+          relStore.clear();
+          for (const r of relationships) relStore.put(r);
+        }
+
+        if (bundle.settings) metaStore.put({ key: 'settings', value: bundle.settings });
+        metaStore.put({ key: 'stageOverrides', value: bundle.stageOverrides || {} });
+        metaStore.put({ key: 'decayOffsetDays', value: bundle.decayOffsetDays || 0 });
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch {
+      this.memoryFallback = {
+        contacts: [...contacts],
+        interactions: [...interactions],
+        relationships: [...relationships],
+        settings: bundle.settings || { ...INITIAL_USER_SETTINGS },
+        stageOverrides: bundle.stageOverrides || {},
+        decayOffsetDays: bundle.decayOffsetDays || 0,
+      };
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
+    }
+
+    return {
+      importedContacts: contacts.length,
+      importedInteractions: interactions.length,
+      importedRelationships: relationships.length,
+    };
+  }
+
+  async universalPurge(safetyPhrase: string): Promise<{ success: boolean; purgedRecords: number }> {
+    if (safetyPhrase.trim() !== 'PURGE NETPULSE STORE') {
+      throw new Error('Safety confirmation phrase does not match "PURGE NETPULSE STORE".');
+    }
+
+    const initialTelemetry = await this.getStorageTelemetry();
+    const totalCount = initialTelemetry.contactsCount + initialTelemetry.interactionsCount + initialTelemetry.relationshipsCount;
+
+    try {
+      const db = await this.initDB();
+      await new Promise<void>((resolve) => {
+        const stores = ['contacts', 'interactions', 'meta'];
+        if (db.objectStoreNames.contains('relationships')) stores.push('relationships');
+        const tx = db.transaction(stores, 'readwrite');
+
+        tx.objectStore('contacts').clear();
+        tx.objectStore('interactions').clear();
+        if (db.objectStoreNames.contains('relationships')) {
+          tx.objectStore('relationships').clear();
+        }
+
+        const metaStore = tx.objectStore('meta');
+        metaStore.put({ key: 'decayOffsetDays', value: 0 });
+        metaStore.put({ key: 'stageOverrides', value: {} });
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      });
+    } catch {
+      // fallback
+    }
+
+    this.memoryFallback = {
+      contacts: [],
+      interactions: [],
+      relationships: [],
+      settings: { ...INITIAL_USER_SETTINGS },
+      decayOffsetDays: 0,
+      stageOverrides: {},
+    };
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
+    }
+
+    return {
+      success: true,
+      purgedRecords: totalCount,
+    };
+  }
+
+  async batchIngestEntities(entities: Array<Partial<Contact>>): Promise<{
+    inserted: number;
+    updated: number;
+    total: number;
+    errors: string[];
+  }> {
+    const errors: string[] = [];
+    const validContacts: Contact[] = [];
+    let inserted = 0;
+    let updated = 0;
+
+    const existingContacts = await this.getContacts();
+    const existingMap = new Map(existingContacts.map(c => [(c.email || c.full_name).toLowerCase(), c]));
+
+    for (let i = 0; i < entities.length; i++) {
+      const row = entities[i];
+      if (!row.full_name || typeof row.full_name !== 'string' || !row.full_name.trim()) {
+        errors.push(`Row ${i + 1}: Missing or invalid required field 'full_name'.`);
+        continue;
+      }
+
+      const key = (row.email || row.full_name).toLowerCase().trim();
+      const existing = existingMap.get(key);
+
+      const contactRecord: Contact = {
+        id: existing ? existing.id : `batch-${Date.now()}-${i}`,
+        user_id: 'local-user',
+        full_name: row.full_name.trim(),
+        email: row.email ? row.email.trim() : null,
+        company: row.company ? row.company.trim() : null,
+        title: row.title ? row.title.trim() : null,
+        linkedin_url: row.linkedin_url || null,
+        previous_company: existing ? existing.previous_company : null,
+        previous_title: existing ? existing.previous_title : null,
+        source: existing ? existing.source : 'manual',
+        relationship_tier: (['priority', 'warm', 'cold'].includes(row.relationship_tier || '')
+          ? row.relationship_tier
+          : 'warm') as 'priority' | 'warm' | 'cold',
+        last_contacted_at: row.last_contacted_at || new Date().toISOString().split('T')[0],
+        last_bulk_synced_at: existing ? existing.last_bulk_synced_at : null,
+        last_enriched_at: existing ? existing.last_enriched_at : null,
+        notes: row.notes || null,
+        created_at: existing ? existing.created_at : new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existing) {
+        updated++;
+      } else {
+        inserted++;
+      }
+
+      validContacts.push(contactRecord);
+    }
+
+    for (const contact of validContacts) {
+      await this.saveContact(contact);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
+    }
+
+    return {
+      inserted,
+      updated,
+      total: validContacts.length,
+      errors,
+    };
+  }
 }
 
 export const netPulseStore = new NetPulseStore();

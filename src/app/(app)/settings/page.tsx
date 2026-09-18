@@ -1,8 +1,9 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════
-// NetPulse — Cadence SLA & Relationship Scoring Settings
-// Reactive local write-ahead storage with cloud fallback.
+// NetPulse — Cadence SLA, Scoring & Enterprise Data Governance
+// Reactive local write-ahead storage, storage quota telemetry,
+// structured database snapshot export, and universal cascading purge.
 // ═══════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
@@ -17,10 +18,22 @@ import {
   Plus,
   RotateCcw,
   Sparkles,
+  Database,
+  Download,
+  Trash2,
+  AlertTriangle,
+  HardDrive,
+  FileJson,
+  FileSpreadsheet,
+  Activity,
+  Layers,
+  RefreshCw,
+  ShieldAlert,
 } from 'lucide-react';
 import { netPulseStore } from '@/lib/storage/db';
 import type { UserSettings, ScoringWeights } from '@/lib/types';
 import { DEFAULT_SETTINGS } from '@/lib/types';
+import { soundFx } from '@/lib/sound';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings>({
@@ -36,13 +49,33 @@ export default function SettingsPage() {
   const [newCompany, setNewCompany] = useState('');
   const [newTitle, setNewTitle] = useState('');
 
+  // Enterprise Governance State
+  const [telemetry, setTelemetry] = useState<{
+    contactsCount: number;
+    interactionsCount: number;
+    relationshipsCount: number;
+    virtualityLinksCount: number;
+    decayOffsetDays: number;
+    activePersona: string;
+    estimatedBytes: number;
+  } | null>(null);
+  const [purgePhrase, setPurgePhrase] = useState('');
+  const [isPurging, setIsPurging] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const loadData = async () => {
+    const data = await netPulseStore.getSettings();
+    setSettings(data);
+    const telem = await netPulseStore.getStorageTelemetry();
+    setTelemetry(telem);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    async function load() {
-      const data = await netPulseStore.getSettings();
-      setSettings(data);
-      setLoading(false);
-    }
-    load();
+    loadData();
+    const handleUpdate = () => loadData();
+    window.addEventListener('netpulse:state-changed', handleUpdate);
+    return () => window.removeEventListener('netpulse:state-changed', handleUpdate);
   }, []);
 
   const showToast = (msg: string) => {
@@ -104,6 +137,7 @@ export default function SettingsPage() {
         updated_at: new Date().toISOString(),
       };
       await netPulseStore.saveSettings(updated);
+      soundFx.playSuccessChime();
       showToast('Cadence SLAs & scoring formulas saved! Alerts recalculated.');
     } finally {
       setSaving(false);
@@ -118,130 +152,210 @@ export default function SettingsPage() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-    showToast('Reset configuration to default mathematical baseline');
+    soundFx.playChirp();
+    showToast('Reset Cadence SLAs and weights to default system baselines.');
   };
 
-  if (loading) {
-    return (
-      <div className="page-container" style={{ maxWidth: 880 }}>
-        <div className="skeleton" style={{ height: 180, borderRadius: 16, marginBottom: 20 }} />
-        <div className="skeleton" style={{ height: 260, borderRadius: 16 }} />
-      </div>
-    );
-  }
+  // ── Database Snapshot Export ──
+  const handleExportJSON = async () => {
+    setIsExporting(true);
+    try {
+      const snapshot = await netPulseStore.exportDatabaseSnapshot();
+      const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `netpulse-enterprise-snapshot-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      soundFx.playSuccessChime();
+      showToast('Exported complete NetPulse database snapshot (JSON).');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    const contacts = await netPulseStore.getContacts();
+    const headers = ['full_name', 'email', 'company', 'title', 'relationship_tier', 'last_contacted_at', 'notes'];
+    const rows = contacts.map(c => [
+      `"${c.full_name || ''}"`,
+      `"${c.email || ''}"`,
+      `"${c.company || ''}"`,
+      `"${c.title || ''}"`,
+      `"${c.relationship_tier || ''}"`,
+      `"${c.last_contacted_at || ''}"`,
+      `"${(c.notes || '').replace(/"/g, '""')}"`,
+    ].join(','));
+
+    const csvContent = [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `netpulse-contacts-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    soundFx.playSuccessChime();
+    showToast(`Exported ${contacts.length} contacts to CSV.`);
+  };
+
+  // ── Universal Cascading Purge ──
+  const handleUniversalPurge = async () => {
+    if (purgePhrase.trim() !== 'PURGE NETPULSE STORE') {
+      soundFx.playErrorTone();
+      showToast('Type exact phrase "PURGE NETPULSE STORE" to confirm.');
+      return;
+    }
+
+    setIsPurging(true);
+    try {
+      const result = await netPulseStore.universalPurge(purgePhrase);
+      soundFx.playChirp();
+      setPurgePhrase('');
+      await loadData();
+      showToast(`Universal Cascade Purge complete: ${result.purgedRecords} records removed.`);
+    } catch (err) {
+      soundFx.playErrorTone();
+      showToast((err as Error).message);
+    } finally {
+      setIsPurging(false);
+    }
+  };
+
+  // ── Factory Benchmark Restore ──
+  const handleRestoreBenchmark = async () => {
+    await netPulseStore.resetToBaseline();
+    await loadData();
+    soundFx.playSuccessChime();
+    showToast('Restored 15+ Silicon Valley leaders, interactions, and relationships.');
+  };
 
   return (
-    <div className="page-container" style={{ maxWidth: 900 }}>
-      {/* Header */}
-      <div className="page-header animate-fade-in">
+    <div className="page-container" style={{ maxWidth: 980 }}>
+      {/* Page Header */}
+      <div className="page-header animate-fade-in" style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span className="badge badge-priority" style={{ fontSize: '0.7rem' }}>
-            ENGINE CONFIGURATION
+            ENGINE CONFIGURATION &amp; DATA GOVERNANCE
           </span>
           <span style={{ fontSize: '0.75rem', color: 'var(--np-text-tertiary)' }}>
-            Real-Time SLA Cadences &bull; Algorithmic Urgency Weights
+            Mathematical SLA Cadence &bull; Quota Telemetry &bull; Universal Cascading Purge
           </span>
         </div>
-        <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>System Settings</h1>
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>System Settings &amp; Governance</h1>
         <p style={{ margin: 0, color: 'var(--np-text-secondary)', fontSize: '0.88rem' }}>
-          Calibrate cadence thresholds, seniority priorities, and mathematical decay curves
+          Calibrate cadence decay equations, decision-maker multipliers, and govern local IndexedDB storage.
         </p>
       </div>
 
-      {/* Cadence Intervals Card */}
-      <div className="card animate-fade-in-up" style={{ marginBottom: 20, padding: 22, borderRadius: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+      {/* Cadence SLAs Section */}
+      <div className="card animate-fade-in-up" style={{ padding: 24, borderRadius: 16, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <Clock size={20} style={{ color: 'var(--np-accent)' }} />
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Cadence SLA Thresholds</h2>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Cadence SLA Thresholds (Days)</h2>
         </div>
-        <p style={{ fontSize: '0.84rem', color: 'var(--np-text-secondary)', marginTop: -8, marginBottom: 20 }}>
-          Define maximum inactive days before relationships trigger Cadence Watchdog warnings.
+        <p style={{ fontSize: '0.84rem', color: 'var(--np-text-secondary)', marginBottom: 20 }}>
+          Maximum allowable days between touchpoints before the relationship is flagged as decaying.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-          {/* Priority Tier SLA */}
-          <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, fontSize: '0.84rem' }}>Priority Tier SLA</span>
-              <span className="badge badge-priority" style={{ fontSize: '0.72rem' }}>
-                {settings.cadence_priority_days} Days
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+          {/* Priority Tier */}
+          <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12, border: '1px solid var(--np-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span className="badge badge-priority" style={{ fontSize: '0.75rem' }}>Priority Tier</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--np-danger)' }}>
+                {settings.cadence_priority_days || 14}d
               </span>
             </div>
+            <p style={{ fontSize: '0.76rem', color: 'var(--np-text-secondary)', marginBottom: 12 }}>
+              High-value partners, key clients, and core advisors.
+            </p>
             <input
               type="range"
               min={3}
-              max={30}
+              max={60}
               step={1}
-              value={settings.cadence_priority_days}
-              onChange={e => setSettings({ ...settings, cadence_priority_days: Number(e.target.value) })}
+              value={settings.cadence_priority_days || 14}
+              onChange={e =>
+                setSettings(prev => ({
+                  ...prev,
+                  cadence_priority_days: Number(e.target.value),
+                }))
+              }
               style={{ width: '100%', cursor: 'pointer' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--np-text-tertiary)', marginTop: 4 }}>
-              <span>3 days (Hyper-active)</span>
-              <span>30 days</span>
-            </div>
           </div>
 
-          {/* Warm Tier SLA */}
-          <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, fontSize: '0.84rem' }}>Warm Tier SLA</span>
-              <span className="badge badge-warm" style={{ fontSize: '0.72rem' }}>
-                {settings.cadence_warm_days} Days
+          {/* Warm Tier */}
+          <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12, border: '1px solid var(--np-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span className="badge badge-warm" style={{ fontSize: '0.75rem' }}>Warm Tier</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--np-warning)' }}>
+                {settings.cadence_warm_days || 30}d
               </span>
             </div>
+            <p style={{ fontSize: '0.76rem', color: 'var(--np-text-secondary)', marginBottom: 12 }}>
+              Active collaborators and respected industry peers.
+            </p>
             <input
               type="range"
               min={14}
               max={90}
               step={1}
-              value={settings.cadence_warm_days}
-              onChange={e => setSettings({ ...settings, cadence_warm_days: Number(e.target.value) })}
+              value={settings.cadence_warm_days || 30}
+              onChange={e =>
+                setSettings(prev => ({
+                  ...prev,
+                  cadence_warm_days: Number(e.target.value),
+                }))
+              }
               style={{ width: '100%', cursor: 'pointer' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--np-text-tertiary)', marginTop: 4 }}>
-              <span>14 days</span>
-              <span>90 days (Quarterly)</span>
-            </div>
           </div>
 
-          {/* Cold Tier SLA */}
-          <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, fontSize: '0.84rem' }}>Cold Tier SLA</span>
-              <span className="badge badge-cold" style={{ fontSize: '0.72rem' }}>
-                {settings.cadence_cold_days} Days
+          {/* Cold Tier */}
+          <div style={{ padding: 16, background: 'var(--np-bg-secondary)', borderRadius: 12, border: '1px solid var(--np-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span className="badge badge-cold" style={{ fontSize: '0.75rem' }}>Cold Tier</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--np-text-tertiary)' }}>
+                {settings.cadence_cold_days || 90}d
               </span>
             </div>
+            <p style={{ fontSize: '0.76rem', color: 'var(--np-text-secondary)', marginBottom: 12 }}>
+              Broad network and casual acquaintances.
+            </p>
             <input
               type="range"
               min={30}
               max={180}
               step={5}
-              value={settings.cadence_cold_days}
-              onChange={e => setSettings({ ...settings, cadence_cold_days: Number(e.target.value) })}
+              value={settings.cadence_cold_days || 90}
+              onChange={e =>
+                setSettings(prev => ({
+                  ...prev,
+                  cadence_cold_days: Number(e.target.value),
+                }))
+              }
               style={{ width: '100%', cursor: 'pointer' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--np-text-tertiary)', marginTop: 4 }}>
-              <span>30 days</span>
-              <span>180 days (Semi-annual)</span>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Priority Scoring Weights Card */}
-      <div className="card animate-fade-in-up" style={{ marginBottom: 20, padding: 22, borderRadius: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+      {/* Scoring Weights */}
+      <div className="card animate-fade-in-up" style={{ padding: 24, borderRadius: 16, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <Sliders size={20} style={{ color: 'var(--np-accent)' }} />
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Decay Scoring Weights</h2>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Mathematical Urgency Weighting</h2>
         </div>
-        <p style={{ fontSize: '0.84rem', color: 'var(--np-text-secondary)', marginTop: -8, marginBottom: 20 }}>
-          Adjust the relative mathematical weights powering the deterministic priority formula.
+        <p style={{ fontSize: '0.84rem', color: 'var(--np-text-secondary)', marginBottom: 20 }}>
+          Adjust formula components for priority score calculation (0 - 100).
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-          {/* Recency Decay Weight */}
           <div style={{ padding: 14, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.82rem', fontWeight: 700 }}>
               <span>Recency Urgency</span>
@@ -258,7 +372,6 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* Tier Multiplier */}
           <div style={{ padding: 14, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.82rem', fontWeight: 700 }}>
               <span>Relationship Tier</span>
@@ -275,7 +388,6 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* Title Seniority */}
           <div style={{ padding: 14, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.82rem', fontWeight: 700 }}>
               <span>Title Seniority</span>
@@ -292,10 +404,9 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* Engagement Frequency */}
           <div style={{ padding: 14, background: 'var(--np-bg-secondary)', borderRadius: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.82rem', fontWeight: 700 }}>
-              <span>Engagement Frequency</span>
+              <span>Engagement Rate</span>
               <span style={{ color: '#4f46e5' }}>{settings.scoring_weights?.engagement_weight || 20}%</span>
             </div>
             <input
@@ -313,7 +424,6 @@ export default function SettingsPage() {
 
       {/* Target Companies & Titles */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 24 }}>
-        {/* Target Companies */}
         <div className="card animate-fade-in-up" style={{ padding: 20, borderRadius: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Building2 size={18} style={{ color: 'var(--np-accent)' }} />
@@ -365,7 +475,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Target Seniority Titles */}
         <div className="card animate-fade-in-up" style={{ padding: 20, borderRadius: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Briefcase size={18} style={{ color: 'var(--np-accent)' }} />
@@ -418,6 +527,127 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* ENTERPRISE DATA GOVERNANCE & STORAGE STUDIO */}
+      <div className="card animate-fade-in-up" style={{ padding: 24, borderRadius: 16, marginBottom: 24, border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <HardDrive size={20} style={{ color: 'var(--np-accent)' }} />
+            <div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Enterprise Data Governance &amp; Storage Studio</h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--np-text-secondary)', margin: 0 }}>
+                Live storage quota telemetry, full database snapshot export, and universal cascading purge controls.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleRestoreBenchmark}
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+          >
+            <RotateCcw size={13} /> Restore Benchmark Seeds
+          </button>
+        </div>
+
+        {/* Live Storage Telemetry Strip */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: 10,
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ padding: 12, background: 'var(--np-bg-secondary)', borderRadius: 10, border: '1px solid var(--np-border)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', fontWeight: 700 }}>CONTACTS</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--np-text-primary)' }}>{telemetry?.contactsCount ?? '—'}</div>
+          </div>
+          <div style={{ padding: 12, background: 'var(--np-bg-secondary)', borderRadius: 10, border: '1px solid var(--np-border)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', fontWeight: 700 }}>INTERACTIONS</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--np-info)' }}>{telemetry?.interactionsCount ?? '—'}</div>
+          </div>
+          <div style={{ padding: 12, background: 'var(--np-bg-secondary)', borderRadius: 10, border: '1px solid var(--np-border)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', fontWeight: 700 }}>RELATIONSHIPS</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#8b5cf6' }}>{telemetry?.relationshipsCount ?? '—'}</div>
+          </div>
+          <div style={{ padding: 12, background: 'var(--np-bg-secondary)', borderRadius: 10, border: '1px solid var(--np-border)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', fontWeight: 700 }}>VIRTUALITY LINKS</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#06b6d4' }}>{telemetry?.virtualityLinksCount ?? '—'}</div>
+          </div>
+          <div style={{ padding: 12, background: 'var(--np-bg-secondary)', borderRadius: 10, border: '1px solid var(--np-border)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', fontWeight: 700 }}>ESTIMATED SIZE</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>
+              {telemetry ? `${(telemetry.estimatedBytes / 1024).toFixed(1)} KB` : '—'}
+            </div>
+          </div>
+        </div>
+
+        {/* Export Action Strip */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+          <button
+            onClick={handleExportJSON}
+            disabled={isExporting}
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+          >
+            <FileJson size={14} color="#6366f1" /> Export JSON Snapshot Backup
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+          >
+            <FileSpreadsheet size={14} color="#10b981" /> Export Contacts (CSV)
+          </button>
+        </div>
+
+        {/* Universal Cascading Purge Danger Zone */}
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 12,
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#ef4444' }}>
+            <ShieldAlert size={16} />
+            <h4 style={{ fontSize: '0.88rem', fontWeight: 800, margin: 0 }}>Universal Cascading Purge Zone</h4>
+          </div>
+          <p style={{ fontSize: '0.78rem', color: 'var(--np-text-secondary)', marginBottom: 12 }}>
+            Permanently wipes all contacts, interaction audit history, and relationship corridors. To execute, type the exact phrase{' '}
+            <code style={{ color: '#ef4444', fontWeight: 700 }}>PURGE NETPULSE STORE</code> below:
+          </p>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              value={purgePhrase}
+              onChange={e => setPurgePhrase(e.target.value)}
+              placeholder="Type PURGE NETPULSE STORE"
+              className="form-input"
+              style={{ flex: 1, minWidth: 240, fontSize: '0.82rem', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+            />
+            <button
+              onClick={handleUniversalPurge}
+              disabled={purgePhrase.trim() !== 'PURGE NETPULSE STORE' || isPurging}
+              className="btn btn-sm"
+              style={{
+                background: purgePhrase.trim() === 'PURGE NETPULSE STORE' ? '#ef4444' : 'rgba(239, 68, 68, 0.3)',
+                color: '#ffffff',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                cursor: purgePhrase.trim() === 'PURGE NETPULSE STORE' ? 'pointer' : 'not-allowed',
+              }}
+            >
+              <Trash2 size={13} /> {isPurging ? 'Purging...' : 'Execute Universal Purge'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Action Footer */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
         <button
@@ -425,7 +655,7 @@ export default function SettingsPage() {
           className="btn btn-ghost btn-sm"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--np-text-tertiary)' }}
         >
-          <RotateCcw size={14} /> Reset to Defaults
+          <RotateCcw size={14} /> Reset Formulas to Defaults
         </button>
 
         <button

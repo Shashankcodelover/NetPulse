@@ -11,6 +11,7 @@ import { SimulatorModal } from '@/components/simulator-modal';
 import { CommandPalette } from '@/components/command-palette';
 import { AudioTourBar } from '@/components/audio-tour-bar';
 import { ShortcutsModal } from '@/components/shortcuts-modal';
+import { ScenarioTourBar } from '@/components/scenario-tour-bar';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [simulatorOpen, setSimulatorOpen] = useState(false);
@@ -32,7 +33,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <Sidebar />
-      <main className="main-content">
+      <main className="main-content" style={{ display: 'flex', flexDirection: 'column' }}>
+        <ScenarioTourBar />
         {children}
       </main>
       <PulseBot />

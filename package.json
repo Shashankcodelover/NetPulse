@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx --test tests/scoring.test.ts tests/csv-parser.test.ts tests/decay-simulator.test.ts tests/virtualityMesh.test.ts"
+    "test": "npx tsx --test tests/scoring.test.ts tests/csv-parser.test.ts tests/decay-simulator.test.ts tests/virtualityMesh.test.ts tests/enterpriseGovernance.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
