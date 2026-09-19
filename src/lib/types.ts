@@ -78,7 +78,7 @@ export interface UserPersona {
   avatarGradient: string;
   initials: string;
   focus: string;
-  networkRole: 'Venture Partner' | 'Quantum Architect';
+  networkRole: 'Engineer & Founder' | 'Full-Stack Engineer & AI Builder' | 'Venture Partner' | 'Quantum Architect' | string;
 }
 
 export interface PriorityScore {

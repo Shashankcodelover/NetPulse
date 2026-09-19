@@ -7,6 +7,18 @@ import type { Contact, Interaction, Relationship, UserSettings, UserPersona } fr
 import { DEMO_CONTACTS } from '@/lib/demo-data';
 import { DEFAULT_SETTINGS } from '@/lib/types';
 
+export const PERSONA_SHASHANK: UserPersona = {
+  id: 'user-shashank',
+  name: 'Shashank J',
+  title: 'Full-Stack Engineer & AI Builder',
+  company: 'JSS Science and Technology University (SJCE)',
+  email: 'shashank.j8426@gmail.com',
+  avatarGradient: 'linear-gradient(135deg, #4f46e5, #06b6d4)',
+  initials: 'SJ',
+  focus: 'Distributed Systems, Agentic AI & Autonomous Web Platforms',
+  networkRole: 'Engineer & Founder',
+};
+
 export const PERSONA_ALEX: UserPersona = {
   id: 'user-alex',
   name: 'Alex Mercer',
@@ -31,7 +43,7 @@ export const PERSONA_ELENA: UserPersona = {
   networkRole: 'Quantum Architect',
 };
 
-export const DEFAULT_PERSONAS: UserPersona[] = [PERSONA_ALEX, PERSONA_ELENA];
+export const DEFAULT_PERSONAS: UserPersona[] = [PERSONA_SHASHANK, PERSONA_ALEX, PERSONA_ELENA];
 
 const DB_NAME = 'netpulse_db';
 const DB_VERSION = 4;
@@ -39,7 +51,7 @@ const DB_VERSION = 4;
 export const INITIAL_USER_SETTINGS: UserSettings = {
   ...DEFAULT_SETTINGS,
   id: 'local-settings',
-  user_id: 'user-alex',
+  user_id: 'user-shashank',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
@@ -47,86 +59,94 @@ export const INITIAL_USER_SETTINGS: UserSettings = {
 export const DEMO_INTERACTIONS: Interaction[] = [
   {
     id: 'int-1',
-    user_id: 'local-user',
-    contact_id: 'demo-2', // Marcus Vance
+    user_id: 'user-shashank',
+    contact_id: 'contact-sandeep-guna', // Sandeep Gunasekaran (Visa)
     type: 'call',
-    content: 'Quarterly LP briefing on enterprise infrastructure market dynamics. Discussed Series B syndication thesis.',
-    created_at: '2026-06-30T10:00:00Z',
+    content: 'Quarterly architecture briefing on zero-trust identity architectures and HMAC SHA-256 rotating token generation for Smart Attendance.',
+    created_at: '2026-08-12T10:00:00Z',
   },
   {
     id: 'int-2',
-    user_id: 'local-user',
-    contact_id: 'demo-3', // Aria Chen
-    type: 'call',
-    content: 'Catch-up regarding global payments latency and microservice decomposition at Stripe.',
-    created_at: '2026-07-07T14:30:00Z',
+    user_id: 'user-shashank',
+    contact_id: 'contact-pravallika-varikuti', // Pravallika Varikuti (Bosch)
+    type: 'message',
+    content: 'Discussed Bosch automotive IoT telemetry benchmarks and distributed streaming queues in Node.js.',
+    created_at: '2026-09-01T14:30:00Z',
   },
   {
     id: 'int-3',
-    user_id: 'local-user',
-    contact_id: 'demo-1', // Dr. Elena Rostova
-    type: 'message',
-    content: 'Discussed foundation agent evaluation benchmarks and latency constraints in decentralized swarm models.',
-    created_at: '2026-06-23T09:15:00Z',
+    user_id: 'user-shashank',
+    contact_id: 'contact-nagesh-bhavi', // Nagesh Bhavi (HPE)
+    type: 'note',
+    content: 'Reviewing HPE hybrid cloud deployment topologies for DevFlow Pro real-time analytics.',
+    created_at: '2026-08-18T09:15:00Z',
   },
   {
     id: 'int-4',
-    user_id: 'local-user',
-    contact_id: 'demo-4', // Alexander Wright
+    user_id: 'user-shashank',
+    contact_id: 'contact-aritra-mondal', // Aritra Mondal (SJCE)
     type: 'call',
-    content: 'Architecture review of cloud hybrid connectivity and multi-tenant failover protocols on Azure.',
-    created_at: '2026-07-28T16:00:00Z',
+    content: 'Finalized student registration workflows and judging criteria for HACK-OLYMPIC 2026 at JSS STU.',
+    created_at: '2026-09-13T16:00:00Z',
   },
   {
     id: 'int-5',
-    user_id: 'local-user',
-    contact_id: 'demo-5', // Tanvi Kulkarni
+    user_id: 'user-shashank',
+    contact_id: 'contact-abhay-sj', // Abhay S J (Bosch AI)
     type: 'note',
-    content: 'Explored unified webhook reliability models and cross-border settlement compliance.',
-    created_at: '2026-07-28T11:45:00Z',
+    content: 'Explored LangGraph stateful multi-agent DAG execution and autonomous evaluation benchmarks.',
+    created_at: '2026-08-29T11:45:00Z',
   },
 ];
 
 export const DEMO_RELATIONSHIPS: Relationship[] = [
   {
     id: 'rel-1',
-    from_contact_id: 'demo-1', // Dr. Elena Rostova
-    to_contact_id: 'demo-2',   // Marcus Vance
-    type: 'advisor',
-    notes: 'Advises Benchmark on foundation AI models and compute architecture.',
-    created_at: '2026-06-01T10:00:00Z',
+    from_contact_id: 'contact-sandeep-guna', // Sandeep Gunasekaran (Visa)
+    to_contact_id: 'contact-sai-yaswitha',   // Sai Yaswitha Raavi (Visa)
+    type: 'colleague',
+    notes: 'Visa Cybersecurity leadership & cloud engineering team.',
+    created_at: '2026-08-01T10:00:00Z',
   },
   {
     id: 'rel-2',
-    from_contact_id: 'demo-2', // Marcus Vance
-    to_contact_id: 'demo-3',   // Aria Chen
-    type: 'co_investor',
-    notes: 'Co-led Series A syndicate in distributed real-time data streaming.',
-    created_at: '2026-06-15T14:30:00Z',
+    from_contact_id: 'contact-sandeep-guna', // Sandeep Gunasekaran (Visa)
+    to_contact_id: 'contact-r-aswin',        // R Aswin (Visa)
+    type: 'mentor',
+    notes: 'Mentoring cybersecurity interns on hardware attestation and zero-trust perimeter.',
+    created_at: '2026-08-03T14:30:00Z',
   },
   {
     id: 'rel-3',
-    from_contact_id: 'demo-3', // Aria Chen
-    to_contact_id: 'demo-4',   // Alexander Wright
+    from_contact_id: 'contact-pravallika-varikuti', // Pravallika (Bosch)
+    to_contact_id: 'contact-abhay-sj',              // Abhay S J (Bosch)
     type: 'colleague',
-    notes: 'Collaborated on cloud latency optimization initiatives.',
-    created_at: '2026-07-01T09:00:00Z',
+    notes: 'Bosch Global Software Technologies engineering cohorts.',
+    created_at: '2026-08-20T09:00:00Z',
   },
   {
     id: 'rel-4',
-    from_contact_id: 'demo-4', // Alexander Wright
-    to_contact_id: 'demo-5',   // Tanvi Kulkarni
+    from_contact_id: 'contact-aritra-mondal', // Aritra Mondal (SJCE)
+    to_contact_id: 'contact-prakruthi-prasad',// Prakruthi Prasad (TESLA SJCE)
     type: 'partner',
-    notes: 'Enterprise vendor partnership between Microsoft and Databricks.',
-    created_at: '2026-07-10T11:20:00Z',
+    notes: 'Joint technical council organizers for HACK-OLYMPIC 2026.',
+    created_at: '2026-09-01T11:20:00Z',
   },
   {
     id: 'rel-5',
-    from_contact_id: 'demo-1', // Dr. Elena Rostova
-    to_contact_id: 'demo-6',   // David Sterling
-    type: 'introduced_by',
-    notes: 'Introduced by Elena during AI Safety Summit in Geneva.',
-    created_at: '2026-07-18T16:45:00Z',
+    from_contact_id: 'contact-dr-elena-rostova', // Dr. Elena Rostova (DeepMind)
+    to_contact_id: 'contact-marcus-vance',       // Marcus Vance (Benchmark)
+    type: 'advisor',
+    notes: 'Advises Benchmark on foundation AI models and compute architecture.',
+    created_at: '2026-08-15T16:45:00Z',
+  },
+  {
+    id: 'rel-6',
+    from_contact_id: 'contact-nipun-deept',  // Nipun Deept (LCC)
+    to_contact_id: 'contact-aritra-mondal',  // Aritra Mondal (SJCE)
+    type: 'colleague',
+    notes: 'Open source Linux Campus Club peer advocates.',
+    created_at: '2026-08-25T12:00:00Z',
   },
 ];
 
@@ -581,13 +601,14 @@ class NetPulseStore {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('netpulse_active_persona');
       if (stored === 'user-elena') return PERSONA_ELENA;
-      return PERSONA_ALEX;
+      if (stored === 'user-alex') return PERSONA_ALEX;
+      return PERSONA_SHASHANK;
     }
-    return PERSONA_ALEX;
+    return PERSONA_SHASHANK;
   }
 
   setActivePersona(personaId: string): UserPersona {
-    const selected = personaId === 'user-elena' ? PERSONA_ELENA : PERSONA_ALEX;
+    const selected = personaId === 'user-elena' ? PERSONA_ELENA : personaId === 'user-alex' ? PERSONA_ALEX : PERSONA_SHASHANK;
     if (typeof window !== 'undefined') {
       localStorage.setItem('netpulse_active_persona', selected.id);
       window.dispatchEvent(new CustomEvent('netpulse:persona-switched', { detail: selected }));

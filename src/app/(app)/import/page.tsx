@@ -37,6 +37,17 @@ import { soundFx } from '@/lib/sound';
 type ImportStage = 'upload' | 'parsing' | 'importing' | 'complete' | 'error';
 type StudioMode = 'csv' | 'json';
 
+const SAMPLE_CSV_PRESET_SHASHANK = `full_name,email,company,title,relationship_tier,last_contacted_at,notes
+Sandeep Gunasekaran,sandeep.gunasekaran@visa.example.com,Visa,Director | Cloud Security Engineering,priority,2026-08-12,Key industry connection at Visa. Mentoring on enterprise cloud perimeter defense and zero-trust verification.
+Pravallika Varikuti,pravallika.varikuti@bosch.example.com,Bosch Global Software Technologies,Software Engineer,priority,2026-09-01,Bosch alumni network. Automotive backend microservices and telemetry ingestion pipelines.
+Nagesh Bhavi,nagesh.bhavi@hpe.example.com,Hewlett Packard Enterprise,IT Developer/Engineer,priority,2026-08-18,HPE enterprise systems engineer. Syncing on hybrid cloud deployments and DevFlow Pro telemetry.
+Chandan U,chandan.u@qualcomm.example.com,Qualcomm,Associate Software Engineer,warm,2026-08-05,Qualcomm systems engineer. Discussed low-latency firmware and edge computing architectures.
+Raksha B R,raksha.br@infineon.example.com,Infineon Technologies,Student Intern,priority,2026-09-05,Semiconductor engineering collaborator at Infineon. Hardware-level cryptographic key stores.
+Abhay S J,abhay.sj@bosch.example.com,Bosch Global Software Technologies,AI/GenAI Intern,priority,2026-08-28,GenAI researcher at Bosch. Collaborating on multi-agent evaluation frameworks and LangGraph DAGs.
+Divitha Nagaraju,divitha.nagaraju@acceldata.example.com,Acceldata,Software Engineer Intern,priority,2026-09-08,Data observability engineer at Acceldata. Real-time stream monitoring and anomaly detection.
+Sai Yaswitha Raavi,sai.yaswitha@visa.example.com,Visa,Cyber Security Engineer,priority,2026-08-25,Visa Cyber Security team. Zero-trust authentication tokens and anti-proxy verification gates.
+Aritra Mondal,aritra.mondal@jssstu.example.edu,CSE SJCE JSSSTU,Student & Core Peer,priority,2026-09-13,Classmate and hackathon peer at JSS STU CSE. Worked together on HACK-OLYMPIC 2026.`;
+
 const SAMPLE_CSV_PRESET_AI = `full_name,email,company,title,relationship_tier,last_contacted_at,notes
 Jensen Huang,jensen@nvidia.com,NVIDIA,President & CEO,priority,2026-06-15,Key partner for enterprise AI hardware clusters and CUDA acceleration pipelines.
 Mira Murati,mira@thinkingmachines.ai,Thinking Machines Lab,Founder & CEO,priority,2026-06-28,Ex-CTO OpenAI. Evaluating next-gen autonomous agent reasoning frameworks.
@@ -435,6 +446,16 @@ export default function ImportPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--np-text-secondary)' }}>1-Click Presets:</span>
+              <button
+                onClick={() => {
+                  setStudioMode('csv');
+                  setBufferText(SAMPLE_CSV_PRESET_SHASHANK);
+                }}
+                className="btn btn-primary btn-sm"
+                style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                <Users size={12} /> Shashank&apos;s LinkedIn Network
+              </button>
               <button
                 onClick={() => {
                   setStudioMode('csv');

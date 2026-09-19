@@ -21,19 +21,19 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const handlePersonaLogin = (personaId: 'user-alex' | 'user-elena') => {
+  const handlePersonaLogin = (personaId: 'user-shashank' | 'user-alex' | 'user-elena', target = '/') => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('netplus_demo_mode', 'true');
       localStorage.setItem('netpulse_active_persona', personaId);
       window.dispatchEvent(new CustomEvent('netpulse:persona-switched'));
       window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
     }
-    router.push('/virtuality');
+    router.push(target);
     router.refresh();
   };
 
   const handleInstantDemoLogin = () => {
-    handlePersonaLogin('user-alex');
+    handlePersonaLogin('user-shashank', '/');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -187,13 +187,81 @@ export default function LoginPage() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-                <span>Dual-User Role Play (1-Click)</span>
+                <span>Quick Demo Access (1-Click)</span>
                 <span style={{ color: 'var(--np-accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Sparkles size={11} /> Zero-Manual Entry
+                  <Sparkles size={11} /> Real LinkedIn Network Active
                 </span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Primary Persona: Shashank J (Real LinkedIn Data) */}
+                <button
+                  type="button"
+                  onClick={() => handlePersonaLogin('user-shashank', '/')}
+                  className="btn btn-secondary"
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(236, 72, 153, 0.12) 100%)',
+                    border: '1.5px solid rgba(99, 102, 241, 0.5)',
+                    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = '#ec4899';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #6366f1, #ec4899)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.9rem',
+                    flexShrink: 0,
+                    boxShadow: '0 2px 8px rgba(236, 72, 153, 0.4)',
+                  }}>
+                    SJ
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--np-text-primary)' }}>
+                        Shashank J
+                      </div>
+                      <span style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        background: 'rgba(99, 102, 241, 0.2)',
+                        color: 'var(--np-accent)',
+                      }}>
+                        PRIMARY (1.9K CONNECTIONS)
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--np-text-secondary)' }}>
+                      Full-Stack Engineer &amp; AI Builder • JSSSTU / SJCE
+                    </div>
+                  </div>
+                  <Zap size={18} style={{ color: '#ec4899' }} />
+                </button>
+
                 {/* User 1: Alex Mercer */}
                 <button
                   type="button"

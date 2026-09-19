@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# data exports & scratch
+*.csv
+*.zip
+*.zip.zip
+/scratch/
+/Jobs/
+/Verifications/
+

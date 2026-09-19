@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserCheck, Sparkles, ChevronDown, ArrowRightLeft, ShieldCheck, Zap } from 'lucide-react';
-import { netPulseStore, PERSONA_ALEX, PERSONA_ELENA, DEFAULT_PERSONAS } from '@/lib/storage/db';
+import { netPulseStore, PERSONA_SHASHANK, PERSONA_ALEX, PERSONA_ELENA, DEFAULT_PERSONAS } from '@/lib/storage/db';
 import type { UserPersona, Relationship } from '@/lib/types';
 import { soundFx } from '@/lib/sound';
 
@@ -17,7 +17,7 @@ interface PersonaSwitcherProps {
 }
 
 export function PersonaSwitcher({ compact = false }: PersonaSwitcherProps) {
-  const [activePersona, setActivePersona] = useState<UserPersona>(PERSONA_ALEX);
+  const [activePersona, setActivePersona] = useState<UserPersona>(PERSONA_SHASHANK);
   const [isOpen, setIsOpen] = useState(false);
   const [pendingHandshakes, setPendingHandshakes] = useState<Relationship[]>([]);
 
