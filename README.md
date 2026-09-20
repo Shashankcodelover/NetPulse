@@ -172,3 +172,13 @@ Validates:
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
+
+## User Flow Verification
+
+![User Flow](docs/netpulse_login_verified.png)
+![User Flow](docs/netpulse_mobile_verified.png)
+![User Flow](docs/netpulse_pipeline_verified.png)
+![User Flow](docs/netpulse_pulsebot_verified.png)
+![User Flow](docs/netpulse_reconnect_verified.png)
+
