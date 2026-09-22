@@ -19,11 +19,10 @@ describe('Creative Virtuality Linking & Dual-Persona Mesh Suite', () => {
     await netPulseStore.resetToFactoryDefaults();
   });
 
-  test('1. Persona System — Initializes with Alex Mercer and supports switching to Dr. Elena Rostova', () => {
+  test('1. Persona System — Initializes with Shashank J and supports switching to Dr. Elena Rostova', () => {
     const defaultPersona = netPulseStore.getActivePersona();
-    assert.equal(defaultPersona.id, 'user-alex');
-    assert.equal(defaultPersona.name, 'Alex Mercer');
-    assert.equal(defaultPersona.networkRole, 'Venture Partner');
+    assert.equal(defaultPersona.id, 'user-shashank');
+    assert.equal(defaultPersona.name, 'Shashank J');
 
     // Switch to Elena Rostova
     const switched = netPulseStore.setActivePersona('user-elena');
@@ -31,13 +30,13 @@ describe('Creative Virtuality Linking & Dual-Persona Mesh Suite', () => {
     assert.equal(switched.name, 'Dr. Elena Rostova');
     assert.equal(switched.networkRole, 'Quantum Architect');
 
-    // Switch back
+    // Switch to Alex
     const restored = netPulseStore.setActivePersona('user-alex');
     assert.equal(restored.id, 'user-alex');
   });
 
   test('2. Persona System — Verifies persona roster credentials & focus domains', () => {
-    assert.equal(DEFAULT_PERSONAS.length, 2);
+    assert.equal(DEFAULT_PERSONAS.length, 3);
 
     const alex = DEFAULT_PERSONAS.find(p => p.id === 'user-alex')!;
     assert.ok(alex);

@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import type { Contact, Interaction, Relationship, UserSettings, UserPersona } from '@/lib/types';
-import { DEMO_CONTACTS } from '@/lib/demo-data';
+import { DEMO_CONTACTS, DEMO_INTERACTIONS } from '@/lib/demo-data';
 import { DEFAULT_SETTINGS } from '@/lib/types';
 
 export const PERSONA_SHASHANK: UserPersona = {
@@ -56,7 +56,7 @@ export const INITIAL_USER_SETTINGS: UserSettings = {
   updated_at: new Date().toISOString(),
 };
 
-export const DEMO_INTERACTIONS: Interaction[] = [];
+export { DEMO_INTERACTIONS };
 export const DEMO_RELATIONSHIPS: Relationship[] = [];
 
 export interface NetPulseDBData {
@@ -70,6 +70,7 @@ export interface NetPulseDBData {
 
 class NetPulseStore {
   private dbPromise: Promise<IDBDatabase> | null = null;
+  private memoryActivePersona: UserPersona = PERSONA_SHASHANK;
   private memoryFallback: NetPulseDBData = {
     contacts: [...DEMO_CONTACTS],
     interactions: [...DEMO_INTERACTIONS],
@@ -513,11 +514,12 @@ class NetPulseStore {
       if (stored === 'user-alex') return PERSONA_ALEX;
       return PERSONA_SHASHANK;
     }
-    return PERSONA_SHASHANK;
+    return this.memoryActivePersona || PERSONA_SHASHANK;
   }
 
   setActivePersona(personaId: string): UserPersona {
     const selected = personaId === 'user-elena' ? PERSONA_ELENA : personaId === 'user-alex' ? PERSONA_ALEX : PERSONA_SHASHANK;
+    this.memoryActivePersona = selected;
     if (typeof window !== 'undefined') {
       localStorage.setItem('netpulse_active_persona', selected.id);
       window.dispatchEvent(new CustomEvent('netpulse:persona-switched', { detail: selected }));
@@ -649,8 +651,8 @@ class NetPulseStore {
     const activePersona = this.getActivePersona();
 
     const elena = contacts.find(c => c.full_name.includes('Elena') || c.id === 'demo-1') || contacts[0];
-    const marcus = contacts.find(c => c.full_name.includes('Marcus') || c.id === 'demo-2') || contacts[1];
-    const aria = contacts.find(c => c.full_name.includes('Aria') || c.id === 'demo-3') || contacts[2];
+    const marcus = contacts.find(c => c.full_name.includes('Marcus') || c.id === 'demo-2') || contacts[1] || contacts[0];
+    const aria = contacts.find(c => c.full_name.includes('Aria') || c.id === 'demo-3') || contacts[2] || contacts[0];
 
     let newLink: Relationship;
     const now = new Date().toISOString();

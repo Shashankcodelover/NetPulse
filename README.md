@@ -1,130 +1,175 @@
-# ⚡ NetPulse CRM — Microsoft Imagine Cup 2026 World Championship
+# ⚡ NetPulse CRM
 
-> **Never let a high-value connection go cold.**  
-> *The AI-native personal relationship steward with algorithmic half-life decay, autonomous dossiers, and multi-channel outreach.*
+> A personal relationship manager that scores outreach urgency, tracks contact cadences, and facilitates reconnection.
 
-[![Microsoft Imagine Cup 2026](https://img.shields.io/badge/Microsoft%20Imagine%20Cup-2026%20World%20Finalist-0078D4?logo=microsoft)](https://imaginecup.microsoft.com/)
 [![Live Deployment](https://img.shields.io/badge/Live%20Demo-netpulse.shashankj.tech-4F46E5?logo=vercel)](https://netpulse.shashankj.tech)
-[![Scoreboard](https://img.shields.io/badge/Championship%20Rating-10.0%20%2F%2010.0-10B981)](https://github.com/Shashankcodelover/NetPulse)
 [![Next.js 16](https://img.shields.io/badge/Next.js-16%20(Turbopack)-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict%205-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL%20%2B%20Auth-3ECF8E?logo=supabase)](https://supabase.com/)
-[![Offline-First](https://img.shields.io/badge/Architecture-IndexedDB%20Write--Ahead%20Sync-6366F1)](#offline-first-architecture)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## 🌐 Live Production Deployment
-> 🔗 **Public URL**: [**https://netpulse.shashankj.tech**](https://netpulse.shashankj.tech)  
-> *Production deployed via Vercel with global CDN edge routing and HTTPS.*
+## 🌐 Live Deployment
+
+- **Production URL**: [https://netpulse.shashankj.tech](https://netpulse.shashankj.tech)
+- Deployed on Vercel with HTTPS.
 
 ---
 
-## 🏆 Imagine Cup Transformation Scoreboard
+## 📖 Overview
 
-| Stage | Score | Milestones & Deliverables |
-|---|---|---|
-| **Day 1/7** | `8.80 / 10.0` | Foundation, Supabase DB & Auth, Multi-Factor Scoring Engine, Core UI & SLA Cadence Rules |
-| **Day 2/7** | `9.05 / 10.0` | Pipeline Kanban, Time-Travel Decay Simulator (+90d Horizon), Judge Sandbox Evaluator |
-| **Day 3/7** | `9.30 / 10.0` | Autonomous Contact Dossiers, Reactive SLA Settings, Smart CSV Importer with Field Mapping |
-| **Day 4/7** | `9.50 / 10.0` | Strategic Triage Engine (`/triage`), 10-Sec Quick Enrichment, WhatsApp 1-Click Deep Linking |
-| **Day 5/7** | `9.70 / 10.0` | Global Command Palette (`Ctrl + K`), Job Change Radar (`/radar`), SLA Compliance Telemetry |
-| **Day 7/7** | `9.90 / 10.0` | Championship Pitch Deck, 101s HD Video Walkthrough, Voiceover Script, Web Audio Delight |
-| **Day 8/7** | **`10.0 / 10.0`** | **Grand Finale & UI/UX Transformation: Framer-Motion Dashboard, Animated Score Rings, Live Deployment at `netpulse.shashankj.tech`** |
+NetPulse is a personal relationship management system designed to keep professional networks active. It calculates relationship urgency based on configurable cadence targets, highlights connections that are overdue for outreach, provides structured communication drafts, and supports contact tracking across multiple channels.
 
----
-
-## 🎬 Imagine Cup Media Showcase & Walkthrough Assets
-
-All project presentation media has been organized with clean modularity inside [`docs/showcase/`](docs/showcase/):
-
-- 🎥 **Full HD Desktop Walkthrough Video (101.5s)**: [`docs/showcase/video/netpulse_championship_walkthrough.webm`](docs/showcase/video/netpulse_championship_walkthrough.webm)
-- 🎙️ **Synchronized Pitch & Voiceover Script**: [`docs/showcase/pitch/pitch_voiceover_script.md`](docs/showcase/pitch/pitch_voiceover_script.md)
-- 📸 **Modular Screenshot Gallery & Project Details**: [`docs/showcase/README.md`](docs/showcase/README.md)
-- 🌐 **Public Browser Endpoint**: `/showcase/video/netpulse_championship_walkthrough.webm`
-
----
-
-## 🚀 The Core Problem & Philosophy
-
-Ambitious founders, researchers, and engineers collect 1,000+ high-caliber contacts on LinkedIn and conferences. Yet, within 90 days, **over 94% of these relationships go cold** due to cognitive overload.
-
-Traditional sales CRMs (Salesforce, HubSpot) are clunky deal databases that demand tedious manual data entry. Note apps (Notion, Apple Notes) are static graveyards with zero cadence telemetry.
-
-**NetPulse introduces an autonomous, zero-friction relationship operating system:**
-1. **Mathematical Half-Life Decay**: Calculates urgency deterministically via $D(t) = e^{-\lambda t}$ across Priority (14d), Warm (30d), and Cold (90d) SLAs.
-2. **Autonomous Contact Dossiers**: Live relationship timeline, topic history, and 1-click WhatsApp/Google Calendar outreach.
-3. **60-Second Morning Speed Run**: Distraction-free daily power mode to triage and reconnect with top overdue leaders in under a minute.
-4. **Interactive Network Graph**: Dynamic SVG topology map visualizing contacts as orbiting nodes around enterprise clusters.
-5. **Linear-Grade Command Omnibar (`Ctrl + K`)**: Instant fuzzy search across all contacts and system actions.
+The application operates with an offline-first architecture using browser-local IndexedDB storage and optional Supabase cloud authentication.
 
 ---
 
 ## 🏛️ System Architecture
 
 ```
-                               ┌──────────────────────────────────────────────┐
-                               │             NetPulse UI Experience           │
-                               │   (Next.js 16 App Router + Turbopack)        │
-                               └──────────────────────┬───────────────────────┘
-                                                      │
-                       ┌──────────────────────────────┴──────────────────────────────┐
-                       │                                                             │
-                       ▼                                                             ▼
-        ┌─────────────────────────────┐                               ┌─────────────────────────────┐
-        │  Client-Side State Engine   │                               │     Generative AI Engine    │
-        │  • IndexedDB Write-Ahead    │                               │     • Google Gemini 1.5     │
-        │  • Event-Driven Dispatcher  │                               │     • Multi-Archetype Tone  │
-        │  • Web Audio Synthesizer    │                               │     • Heuristic Fallback    │
-        └──────────────┬──────────────┘                               └──────────────┬──────────────┘
-                       │                                                             │
-                       ▼                                                             ▼
-        ┌─────────────────────────────┐                               ┌─────────────────────────────┐
-        │   Supabase Cloud Backend    │                               │   Multi-Channel Dispatch    │
-        │   • PostgreSQL with RLS     │                               │   • WhatsApp wa.me Linker   │
-        │   • Supabase Auth & JWT     │                               │   • Google Calendar DeepSync│
-        │   • Real-Time Synchronizer  │                               │   • Markdown Notion Export  │
-        └─────────────────────────────┘                               └─────────────────────────────┘
+                       ┌──────────────────────────────────────────────┐
+                       │           NetPulse Web Application           │
+                       │             (Next.js 16 App Router)          │
+                       └──────────────────────┬───────────────────────┘
+                                              │
+               ┌──────────────────────────────┴──────────────────────────────┐
+               │                                                             │
+               ▼                                                             ▼
+┌─────────────────────────────┐                               ┌─────────────────────────────┐
+│  Client Storage & Events    │                               │     AI Drafting Engine      │
+│  • IndexedDB (netpulse_db)  │                               │     • Google Gemini 1.5     │
+│  • In-Memory Fallback       │                               │       (when API key set)    │
+│  • Custom Event Dispatcher  │                               │     • Deterministic Rules   │
+│  • Web Audio API Synthesizer│                               │       Fallback              │
+└──────────────┬──────────────┘                               └──────────────┬──────────────┘
+               │                                                             │
+               ▼                                                             ▼
+┌─────────────────────────────┐                               ┌─────────────────────────────┐
+│   Supabase Cloud Backend    │                               │   Multi-Channel Outreach    │
+│   • PostgreSQL Database     │                               │   • WhatsApp (wa.me) Links  │
+│   • Supabase Auth (OAuth)   │                               │   • Google Calendar Links   │
+│   • Next.js Server Client   │                               │   • Email (mailto:) Links   │
+└─────────────────────────────┘                               └─────────────────────────────┘
 ```
 
 ---
 
-## ⚡ Key Features & Workflows
+## ✨ Features
 
-### 1. Interactive Network Topology Visualizer (`/graph`)
-- Satellite node visualization orbiting key enterprise clusters (Google DeepMind, Anthropic, Stripe, Benchmark Capital, Azure, OpenAI).
-- Dynamic pulsing halos indicating active SLA breaches.
-- Click-to-inspect drawer with real-time decay scores, 1-click WhatsApp, and direct dossier navigation.
+### 1. Daily Digest (`/`)
+- Displays prioritized contacts requiring outreach attention.
+- Calculates a 0–100 priority score using:
+  - **Recency**: Days elapsed since last contact compared to target cadence.
+  - **Tier**: Priority, Warm, or Cold status.
+  - **Title**: Bonus scoring for executive and decision-maker roles.
+  - **Engagement**: Total logged interaction count.
+  - **Target Bonus**: Configurable company matching bonuses.
+- Provides one-click action buttons: Mark Contacted, Snooze (7 days), and Copy Markdown Digest to clipboard.
+- Includes a Network Health & Cadence Compliance card showing SLA compliance percentage and tier breakdown.
 
-### 2. "Morning Speed Run" Batch Outreach
-- An executive power mode that sequences today's top 5 overdue contacts.
-- Equips users with tailored AI icebreakers, WhatsApp click-to-chat, and **"✓ Mark Done & Advance"** with celebratory Web Audio fanfares.
+### 2. Pipeline Kanban Board (`/pipeline`)
+- Organizes contacts across five relationship stages:
+  1. **Sourced / Queue**: Identified for initial outreach.
+  2. **Initial Ping**: Message or invite dispatched.
+  3. **Active Dialogue**: Bi-directional conversation in progress.
+  4. **Strategic Catch-up**: Meeting or call scheduled.
+  5. **Trusted Anchor**: Established professional ally.
+- Supports drag-and-drop movement and button-based stage updates, persisted to the local store.
 
-### 3. Global Command Palette (`Ctrl + K` / `Cmd + K`)
-- Raycast/Linear-inspired Omnibar with backdrop blur.
-- Instant fuzzy search across contacts, one-keystroke navigation to any route, and time-travel simulation triggers.
+### 3. Contacts Directory (`/contacts`)
+- Search contacts by name, company, title, or email.
+- Filter by relationship tier (`priority`, `warm`, `cold`).
+- Sort by name, company, or last contacted date (ascending or descending).
+- Modal dialogs for manual contact creation, editing, and deletion (with cascading removal of related interactions and relationships).
+- Export contacts directly to CSV or JSON formats.
 
-### 4. Job Change & Promotion Radar (`/radar`)
-- Automatically flags executive movements, role bumps, and founding milestones.
-- 1-Click **"✨ Draft Congratulations"** pre-fills promotion announcements straight into the AI Inbox.
+### 4. Contact Dossiers (`/contacts/[id]`)
+- Shows contact profile metadata, company, title, email, LinkedIn URL, and cadence status.
+- Displays an interactive timeline of logged interactions (messages, calls, meetings, notes, emails).
+- Touchpoint logger records new interactions and updates the contact's `last_contacted_at` timestamp.
+- Displays and manages relationship connections between contacts (`colleague`, `advisor`, `partner`, `mentor`, `client`, etc.).
+- Computes a Social Capital & Relationship Equity score (0–100) with cadence health categorization (Optimal, Stable, At Risk, Dormant).
+- Generates pre-filled WhatsApp click-to-chat links (`https://wa.me/?text=...`) and Google Calendar template links.
+- Includes a 10-Second Quick Enrichment station to update job title, company, tier, and notes.
 
-### 5. New-Connection Triage Engine (`/triage`)
-- Filters incoming invites into **Explore**, **Respond**, and **Ignore** buckets.
-- 1-Click ingestion directly into `netPulseStore` with assigned cadence SLAs.
+### 5. AI Outreach Studio (`/inbox`)
+- Selects a contact and accepts contextual notes or milestone updates.
+- Calls the `/api/ai/draft-reply` endpoint using Google Gemini 1.5 Flash when `GEMINI_API_KEY` is configured, or uses a deterministic template engine when no key is present.
+- Generates five message archetypes:
+  - **Executive Concise**: Short message (<35 words) for busy leaders.
+  - **Warm Reconnect**: Reconnection note acknowledging elapsed time.
+  - **Strategic Advisory**: Value-add insight message.
+  - **Peer Coffee Sync**: Casual catch-up invitation.
+  - **Direct Partnership**: Action-oriented collaboration proposal.
+- Formats drafts into channel tabs: LinkedIn DM, WhatsApp click-to-chat link, Email (`mailto:` link with subject and body), and Google Calendar catch-up event.
+- Provides an audio briefing using browser Web Speech synthesis (`speechSynthesis`) with visual canvas waveform animation.
 
-### 6. 10-Second Quick Enrichment Station
-- Paste raw meeting notes or LinkedIn snippets; automatically updates title, company, notes, and resets decay clocks in under 10 seconds.
+### 6. Job Change Radar (`/radar`)
+- Displays role changes, promotions, and company moves from demo data.
+- "Draft Congratulations" action opens the outreach studio with pre-filled milestone context.
 
-### 7. Judge Sandbox & Time-Travel Simulator
-- Fast-forward relationship decay by `+14d`, `+30d`, or `+90d` to observe deterministic half-life decay across the Kanban and Graph in real-time.
+### 7. Connection Triage (`/triage`)
+- Filters incoming connection requests into Explore, Respond, and Ignore categories with match scoring and rationale.
+- One-click ingestion adds candidates directly into the contact database.
+- Allows pasting custom invite text for manual categorization.
+
+### 8. Batch Data Ingestion (`/import`)
+- Ingests contacts via CSV or JSON formats.
+- Parses LinkedIn export CSV files: strips preamble notes, normalizes header variations, and validates rows with Zod.
+- Detects title and company changes against existing stored contacts during re-import.
+- Provides pre-configured sample datasets (Industry Network, AI Founders, Crypto Leaders, SaaS Executives).
+
+### 9. SLA Settings & Data Governance (`/settings`)
+- Configures target cadences in days for Priority, Warm, and Cold tiers.
+- Adjusts scoring weights for recency, tier, title, and engagement factors.
+- Manages target company and executive title bonus lists.
+- Shows storage telemetry: contact count, interaction count, relationship count, and storage size.
+- Exports and imports full database backup bundles as structured JSON files.
+- Universal database purge protected by the confirmation phrase `"PURGE NETPULSE STORE"`.
+- Factory reset restores initial baseline demo data.
+
+### 10. Network Topology Graph (`/graph`)
+- Renders an SVG network visualization displaying contacts orbiting enterprise clusters.
+- Displays visual indicators on nodes exceeding cadence SLAs.
+- Slide-out inspection drawer displays scores, contact details, and direct action links.
+- Relationship creation modal links contacts together.
+
+### 11. 3D Virtuality Studio (`/virtuality`)
+- Canvas-based 3D visualization showing contacts with custom relationship link types, resonance percentages, and frequencies.
+- Supports switching perspective between user personas.
+
+### 12. Productivity Tools & Modals
+- **Morning Speed Run**: Sequences the top overdue contacts for quick daily review and outreach.
+- **Time-Travel Decay Simulator**: Advances simulated time by +14d, +30d, or +90d to inspect cadence decay and overdue triggers.
+- **Global Command Palette (`Ctrl + K` / `Cmd + K`)**: Keyboard omnibar for navigating routes and searching contacts.
+- **Shortcuts Modal (`?`)**: Displays all available keyboard navigation shortcuts.
+- **PulseBot Chat Widget**: Floating assistant providing on-demand network health audits and draft suggestions.
+- **Persona Switcher**: Toggles between stored user profiles (Shashank J, Alex Mercer, Dr. Elena Rostova).
+- **Web Audio Sound Effects**: Pure Web Audio API acoustic synthesis for micro-interactions (chimes, clicks, fanfares) without external audio files.
 
 ---
 
-## 🛠️ Quick Start & Local Evaluation
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Framework** | Next.js 16.3.0 (App Router, Turbopack) |
+| **Language** | TypeScript (Strict mode) |
+| **Styling** | Tailwind CSS v4, Custom CSS Variables |
+| **Animation** | Framer Motion |
+| **Database & Auth** | Supabase (`@supabase/supabase-js`, `@supabase/ssr`), IndexedDB |
+| **AI Integration** | Google Gemini 1.5 Flash (via REST API) |
+| **Data Handling** | PapaParse, Zod, date-fns |
+| **Icons** | Lucide React |
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- **Node.js**: v18.17+ or v20+
-- **Package Manager**: `npm`
+- Node.js 18.17+ or 20+
+- npm
 
 ### 1. Clone & Install
 ```bash
@@ -137,48 +182,55 @@ npm install
 ```bash
 cp .env.example .env.local
 ```
-Fill in your Supabase project URL and keys (optional if testing with the built-in offline IndexedDB demo sandbox):
+
+Configure your environment variables in `.env.local` (optional for local demo mode; IndexedDB works without cloud configuration):
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 GEMINI_API_KEY=your-gemini-api-key
 ```
 
-### 3. Run Production Build
+### 3. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 4. Build for Production
 ```bash
 npm run build
 npm run start
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🧪 Automated Playwright Verification
+## 🧪 Testing
 
-NetPulse features a comprehensive suite of end-to-end Playwright tests covering all 7 stages:
+The test suite runs using Node.js's built-in test runner via `tsx`:
+
 ```bash
-# Day 7 Grand Finale Suite
-python scratch/test_netpulse_day7.py
+npm test
 ```
-Validates:
-- Stage 7/7 Header & 10.0 / 10.0 Certification badge.
-- Interactive Presentation Deck slide transitions.
-- Speed Run batch outreach sequence & Web Audio API synthesis.
-- Network Graph rendering and node inspector drawer.
-- Job Change Radar & Command Palette (`Ctrl + K`).
+
+The automated suite runs 35 tests covering:
+- **Priority Scoring Engine**: Score clamping, tier weighting, title detection, and never-contacted urgency calculations (`tests/scoring.test.ts`).
+- **LinkedIn CSV Parser**: Column normalization, preamble note stripping, and change detection (`tests/csv-parser.test.ts`).
+- **Cadence Decay Simulator**: Monotonic urgency growth across simulated time offsets and threshold validations (`tests/decay-simulator.test.ts`).
+- **Virtuality Mesh**: Relationship dimension attributes and persona switching (`tests/virtualityMesh.test.ts`).
+- **Enterprise Governance**: Batch entity ingestion, JSON snapshot export/import, storage telemetry, and cascading database purge (`tests/enterpriseGovernance.test.ts`).
+
+---
+
+## 📸 User Flow Verification
+
+![Login Screen](docs/netpulse_login_verified.png)
+![Mobile View](docs/netpulse_mobile_verified.png)
+![Pipeline Kanban](docs/netpulse_pipeline_verified.png)
+![PulseBot Assistant](docs/netpulse_pulsebot_verified.png)
+![Reconnect Cockpit](docs/netpulse_reconnect_verified.png)
 
 ---
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
-
-
-## User Flow Verification
-
-![User Flow](docs/netpulse_login_verified.png)
-![User Flow](docs/netpulse_mobile_verified.png)
-![User Flow](docs/netpulse_pipeline_verified.png)
-![User Flow](docs/netpulse_pulsebot_verified.png)
-![User Flow](docs/netpulse_reconnect_verified.png)
-
+Distributed under the MIT License. See `LICENSE` for details.
