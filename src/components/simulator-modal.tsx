@@ -224,7 +224,7 @@ export function SimulatorModal({ isOpen, onClose, onStateUpdated }: SimulatorMod
             disabled={isApplying}
             style={{
               backgroundColor: currentOffset === 90 ? 'rgba(168, 85, 247, 0.2)' : '#1e293b',
-              border: `1px solid ${currentOffset === 90 ? '#a855f7' : '#334155'}`,
+              border: `1px solid ${currentOffset === 90 ? '#3b82f6' : '#334155'}`,
               color: '#f8fafc',
               padding: '14px',
               borderRadius: '12px',
@@ -237,7 +237,7 @@ export function SimulatorModal({ isOpen, onClose, onStateUpdated }: SimulatorMod
               transition: 'all 0.2s',
             }}
           >
-            <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#a855f7' }}>+90 Days</span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#3b82f6' }}>+90 Days</span>
             <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Catastrophic loss; critical intervention</span>
           </button>
 

@@ -50,7 +50,7 @@ import type { Contact, Interaction, Relationship, RelationshipTier, Relationship
 function getAvatarColor(name: string): string {
   const colors = [
     '#4F46E5', '#7C3AED', '#2563EB', '#0891B2', '#059669',
-    '#D97706', '#DC2626', '#DB2777', '#9333EA', '#4338CA',
+    '#D97706', '#DC2626', '#DB2777', '#2563eb', '#4338CA',
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
@@ -621,7 +621,7 @@ export default function ContactDetailPage() {
             <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', textTransform: 'uppercase', fontWeight: 700 }}>
               Seniority Leverage
             </div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#8b5cf6', marginTop: 2 }}>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#3b82f6', marginTop: 2 }}>
               +{socialCapital.seniorityWeight} pts
             </div>
           </div>

@@ -62,7 +62,7 @@ const EXOTIC_DIMENSION_LABELS: Record<string, { label: string; icon: string; col
   synaptic_resonator: {
     label: 'Synaptic Resonance Link',
     icon: '🧬',
-    color: '#8B5CF6',
+    color: '#3b82f6',
     desc: 'Cognitive AI pattern alignment. 95%+ thinking frequency overlap.',
   },
   gravitational_orbit: {
@@ -179,7 +179,7 @@ export default function VirtualityPage() {
         company: c.company || 'DeepTech Inc',
         initials: c.full_name.split(' ').map(n => n[0]).join('').slice(0, 2),
         gradient: c.full_name.includes('Elena')
-          ? 'linear-gradient(135deg, #10B981, #8B5CF6)'
+          ? 'linear-gradient(135deg, #10B981, #3b82f6)'
           : c.full_name.includes('Marcus')
           ? 'linear-gradient(135deg, #F59E0B, #EF4444)'
           : 'linear-gradient(135deg, #06B6D4, #6366F1)',
@@ -309,7 +309,7 @@ export default function VirtualityPage() {
           const beamColor = rel.type === 'quantum_entanglement'
             ? '#06B6D4'
             : rel.type === 'synaptic_resonator'
-            ? '#8B5CF6'
+            ? '#3b82f6'
             : rel.type === 'gravitational_orbit'
             ? '#F59E0B'
             : '#10B981';
@@ -720,7 +720,7 @@ export default function VirtualityPage() {
           <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', textTransform: 'uppercase', fontWeight: 800 }}>
             Avg Mesh Resonance
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#8B5CF6', marginTop: 4 }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#3b82f6', marginTop: 4 }}>
             {relationships.length > 0
               ? Math.round(relationships.reduce((acc, r) => acc + (r.resonance || 90), 0) / relationships.length)
               : 94}% Frequency
@@ -866,7 +866,7 @@ export default function VirtualityPage() {
               <button
                 onClick={() => handleForgePreset('synaptic')}
                 className="btn btn-secondary btn-sm"
-                style={{ fontSize: '0.74rem', background: 'rgba(139, 92, 246, 0.1)', color: '#8B5CF6', border: '1px solid rgba(139, 92, 246, 0.3)' }}
+                style={{ fontSize: '0.74rem', background: 'rgba(139, 92, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(139, 92, 246, 0.3)' }}
               >
                 🧬 Sync Synaptic
               </button>

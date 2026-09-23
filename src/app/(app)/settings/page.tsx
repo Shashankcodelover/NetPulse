@@ -568,7 +568,7 @@ export default function SettingsPage() {
           </div>
           <div style={{ padding: 12, background: 'var(--np-bg-secondary)', borderRadius: 10, border: '1px solid var(--np-border)' }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', fontWeight: 700 }}>RELATIONSHIPS</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#8b5cf6' }}>{telemetry?.relationshipsCount ?? '—'}</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#3b82f6' }}>{telemetry?.relationshipsCount ?? '—'}</div>
           </div>
           <div style={{ padding: 12, background: 'var(--np-bg-secondary)', borderRadius: 10, border: '1px solid var(--np-border)' }}>
             <div style={{ fontSize: '0.7rem', color: 'var(--np-text-tertiary)', fontWeight: 700 }}>VIRTUALITY LINKS</div>

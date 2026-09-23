@@ -65,11 +65,11 @@ const RELATIONSHIP_COLORS: Record<RelationshipType, string> = {
   advisor: '#06B6D4',
   co_investor: '#10B981',
   partner: '#F59E0B',
-  mentor: '#8B5CF6',
+  mentor: '#3b82f6',
   client: '#3B82F6',
   // Exotic Virtuality Dimensions
   quantum_entanglement: '#06B6D4',
-  synaptic_resonator: '#8B5CF6',
+  synaptic_resonator: '#3b82f6',
   gravitational_orbit: '#F59E0B',
   stealth_endorsement: '#10B981',
   holosphere_anchor: '#EC4899',
@@ -427,7 +427,7 @@ export default function GraphPage() {
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} /> Enterprise Hub
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 14, height: 3, borderRadius: 2, background: '#8B5CF6', display: 'inline-block' }} /> Peer Mesh Edge
+              <span style={{ width: 14, height: 3, borderRadius: 2, background: '#3b82f6', display: 'inline-block' }} /> Peer Mesh Edge
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <span style={{ width: 9, height: 9, borderRadius: '50%', border: '2px solid #EF4444', display: 'inline-block' }} /> SLA Breach
@@ -461,7 +461,7 @@ export default function GraphPage() {
               const isHighlighted = isConnectedToSelected || isConnectedToHovered || (hoveredEdge?.id === e.id);
 
               if (e.edgeType === 'peer') {
-                const color = e.relType ? (RELATIONSHIP_COLORS[e.relType] || '#8B5CF6') : '#8B5CF6';
+                const color = e.relType ? (RELATIONSHIP_COLORS[e.relType] || '#3b82f6') : '#3b82f6';
                 const midX = (fromNode.x + toNode.x) / 2;
                 const midY = (fromNode.y + toNode.y) / 2;
 

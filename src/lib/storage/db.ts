@@ -37,7 +37,7 @@ export const PERSONA_ELENA: UserPersona = {
   title: 'Founder & Chief Architect',
   company: 'QuantumFoundry',
   email: 'elena.rostova@quantumfoundry.ai',
-  avatarGradient: 'linear-gradient(135deg, #10b981, #8b5cf6)',
+  avatarGradient: 'linear-gradient(135deg, #10b981, #3b82f6)',
   initials: 'ER',
   focus: 'Quantum ML & Cryptography',
   networkRole: 'Quantum Architect',

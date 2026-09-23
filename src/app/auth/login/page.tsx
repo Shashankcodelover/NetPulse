@@ -334,7 +334,7 @@ export default function LoginPage() {
                     width: 34,
                     height: 34,
                     borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #10b981, #8b5cf6)',
+                    background: 'linear-gradient(135deg, #10b981, #3b82f6)',
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',

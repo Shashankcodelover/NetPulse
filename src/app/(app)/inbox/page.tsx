@@ -276,7 +276,7 @@ function InboxContent() {
 
         const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
         gradient.addColorStop(0, '#6366F1');
-        gradient.addColorStop(1, '#A855F7');
+        gradient.addColorStop(1, '#3b82f6');
 
         ctx.fillStyle = gradient;
         ctx.beginPath();
