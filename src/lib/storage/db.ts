@@ -480,7 +480,37 @@ class NetPulseStore {
     }
   }
 
-  async deleteRelationship(relationshipId: string): Promise<void> {
+  async getRelationshipsForContact(contactId: string): Promise<Relationship[]> {
+    return this.getRelationships(contactId);
+  }
+
+  async createRelationship(params: {
+    contact_id_a?: string;
+    contact_id_b?: string;
+    from_contact_id?: string;
+    to_contact_id?: string;
+    relationship_type?: any;
+    type?: any;
+    strength?: number;
+    notes?: string | null;
+  }): Promise<Relationship> {
+    const rel: Relationship & { relationship_type?: any } = {
+      id: `rel-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      from_contact_id: params.from_contact_id || params.contact_id_a || '',
+      to_contact_id: params.to_contact_id || params.contact_id_b || '',
+      type: params.type || params.relationship_type || 'colleague',
+      relationship_type: params.type || params.relationship_type || 'colleague',
+      notes: params.notes || null,
+      created_at: new Date().toISOString(),
+      resonance: params.strength || 85,
+      status: 'active',
+      virtuality_layer: 'synaptic',
+    };
+    await this.saveRelationship(rel);
+    return rel;
+  }
+
+  async deleteRelationship(relationshipId: string): Promise<boolean> {
     try {
       const db = await this.initDB();
       if (db.objectStoreNames.contains('relationships')) {
@@ -503,6 +533,7 @@ class NetPulseStore {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('netpulse:state-changed'));
     }
+    return true;
   }
 
   // ── Multi-User Persona Identity API ──
@@ -907,6 +938,8 @@ class NetPulseStore {
         stageOverrides: {},
       };
     }
+
+    this.memoryActivePersona = PERSONA_SHASHANK;
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('netpulse:state-changed'));

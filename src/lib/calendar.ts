@@ -32,7 +32,7 @@ export function generateGoogleCalendarUrl({
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatGCalDate(start)}/${formatGCalDate(end)}&details=${details}&location=${location}`;
 }
 
-export function generateIcsBlobUrl({
+export function generateIcsContent({
   contact,
   suggestedDate = new Date(Date.now() + 24 * 60 * 60 * 1000),
   agendaTopic = 'Quarterly Strategy & Alignment Catch-up',
@@ -43,7 +43,7 @@ export function generateIcsBlobUrl({
 
   const formatIcsDate = (d: Date) => d.toISOString().replace(/-|:|\.\d+/g, '').substring(0, 15) + 'Z';
 
-  const icsContent = [
+  return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//NetPulse CRM//Relationship Scheduler//EN',
@@ -61,7 +61,9 @@ export function generateIcsBlobUrl({
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n');
+}
 
-  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-  return URL.createObjectURL(blob);
+export function generateIcsBlobUrl(params: CalendarEventParams): string {
+  const icsContent = generateIcsContent(params);
+  return 'data:text/calendar;charset=utf8,' + encodeURIComponent(icsContent);
 }

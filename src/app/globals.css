@@ -9,16 +9,16 @@
 :root {
   /* Light mode */
   --np-bg-primary: #FAFAFA;
-  --np-bg-secondary: #FFFFFF;
-  --np-bg-tertiary: #F3F4F6;
-  --np-bg-sidebar: #FFFFFF;
-  --np-bg-card: #FFFFFF;
-  --np-bg-hover: #F3F4F6;
+  --np-bg-secondary: rgba(255, 255, 255, 0.4);
+  --np-bg-tertiary: rgba(243, 244, 246, 0.4);
+  --np-bg-sidebar: rgba(255, 255, 255, 0.5);
+  --np-bg-card: rgba(255, 255, 255, 0.6);
+  --np-bg-hover: rgba(243, 244, 246, 0.6);
   --np-bg-active: #EEF2FF;
 
   --np-text-primary: #1A1A1A;
   --np-text-secondary: #6B7280;
-  --np-text-tertiary: #9CA3AF;
+  --np-text-tertiary: #4B5563; /* contrast fix */ /* contrast fix */
   --np-text-inverse: #FFFFFF;
 
   --np-border: #E5E7EB;
@@ -46,23 +46,23 @@
   --np-radius-sm: 6px;
   --np-radius-lg: 14px;
 
-  --np-sidebar-width: 260px;
+  --np-sidebar-width: 240px;
 
   color-scheme: light;
 }
 
 .dark {
   --np-bg-primary: #0F0F10;
-  --np-bg-secondary: #18181B;
-  --np-bg-tertiary: #1E1E22;
-  --np-bg-sidebar: #141416;
-  --np-bg-card: #18181B;
-  --np-bg-hover: #27272A;
+  --np-bg-secondary: rgba(255, 255, 255, 0.4);
+  --np-bg-tertiary: rgba(243, 244, 246, 0.4);
+  --np-bg-sidebar: rgba(255, 255, 255, 0.5);
+  --np-bg-card: rgba(255, 255, 255, 0.6);
+  --np-bg-hover: rgba(243, 244, 246, 0.6);
   --np-bg-active: #1E1B4B;
 
   --np-text-primary: #EDEDED;
   --np-text-secondary: #9CA3AF;
-  --np-text-tertiary: #6B7280;
+  --np-text-tertiary: #4B5563; /* contrast fix */
   --np-text-inverse: #0F0F10;
 
   --np-border: #27272A;
@@ -112,6 +112,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+
+  background-image: radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.1) 0px, transparent 50%),
+                    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+  background-attachment: fixed;
 }
 
 /* --- Scrollbar --- */
@@ -504,7 +508,7 @@ body {
   top: 0;
   left: 0;
   bottom: 0;
-  z-index: 40;
+  z-index: 50;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -591,7 +595,7 @@ body {
 .page-container {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 32px clamp(20px, 3.5vw, 48px);
+  padding: 16px clamp(12px, 2vw, 24px);
   box-sizing: border-box;
   width: 100%;
 }
@@ -1199,3 +1203,80 @@ html, body {
   background: var(--np-bg-hover);
   color: var(--np-text-primary);
 }
+
+
+/* PRISM GLASS INJECTED THEME */
+:root {
+  --font-inter: 'Inter', sans-serif;
+  --font-space-grotesk: 'Space Grotesk', sans-serif;
+
+  /* ═══════════════════════════════════════════════
+     PRISM GLASS — LIGHT THEME (DEFAULT)
+     Frosted glassmorphism with pastel ambient washes
+     ═══════════════════════════════════════════════ */
+  --bg-canvas: #F6F6FB;
+  --text-primary: #1B1D2A;
+  --text-secondary: #6B6E85;
+  --text-footnote: #9599AD;
+
+  --glass-bg: rgba(255, 255, 255, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.9);
+  --glass-shadow: 0 8px 30px rgba(109, 74, 235, 0.07);
+  --glass-blur: blur(22px);
+
+  --mint: #0E9C74;
+  --violet: #6D4AEB;
+  --amber: #C97A00;
+  --rose: #E11D48;
+  --emerald: #059669;
+
+  --brand-gradient: linear-gradient(135deg, #6EE7C8, #B69CFF 55%, #FFAFD1);
+  --text-gradient: linear-gradient(135deg, #0E9C74, #6D4AEB 60%, #B69CFF);
+}
+html.dark {
+  --bg-canvas: #0B0F1A;
+  --text-primary: #E8EAF0;
+  --text-secondary: #8B8FA3;
+  --text-footnote: #5A5E72;
+
+  --glass-bg: rgba(15, 20, 35, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  --glass-blur: blur(22px);
+
+  --mint: #34D399;
+  --violet: #A78BFA;
+  --amber: #FBBF24;
+  --rose: #FB7185;
+  --emerald: #10B981;
+
+  --brand-gradient: linear-gradient(135deg, #6EE7C8, #B69CFF 55%, #FFAFD1);
+  --text-gradient: linear-gradient(135deg, #6EE7C8, #B69CFF 60%, #FFAFD1);
+}
+
+/* ═══════════════════════════════════════════════
+   PRISM GLASS CARD SYSTEM
+   ═══════════════════════════════════════════════ */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 16px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card:hover {
+  box-shadow: 0 12px 36px rgba(109, 74, 235, 0.10);
+}
+html.dark .glass-card:hover {
+  border-color: rgba(167, 139, 250, 0.25);
+  box-shadow: 0 12px 36px rgba(109, 74, 235, 0.15);
+}
+.gradient-text {
+  background: var(--text-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+

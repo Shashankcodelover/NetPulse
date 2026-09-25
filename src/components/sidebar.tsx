@@ -116,7 +116,7 @@ export function Sidebar() {
               right: 14,
               padding: 6,
               borderRadius: '50%',
-              zIndex: 10,
+              zIndex: 60,
             }}
             aria-label="Close navigation"
           >

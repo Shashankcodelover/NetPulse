@@ -187,22 +187,35 @@ export function calculatePriorityScore(
  */
 export function getSuggestedReason(
   contact: Contact,
-  score: number,
-  settings: UserSettings,
+  scoreOrSettings?: number | Partial<UserSettings> | null,
+  maybeSettings?: Partial<UserSettings> | null,
   offsetDays: number = 0
 ): string {
   if (!contact.last_contacted_at) {
     return "You've never reached out — time to break the ice";
   }
 
+  let score = 75;
+  let settings: Partial<UserSettings> | null | undefined = maybeSettings;
+
+  if (typeof scoreOrSettings === 'number') {
+    score = scoreOrSettings;
+  } else if (scoreOrSettings && typeof scoreOrSettings === 'object') {
+    settings = scoreOrSettings;
+  }
+
+  const priorityDays = settings?.cadence_priority_days ?? 7;
+  const warmDays = settings?.cadence_warm_days ?? 30;
+  const coldDays = settings?.cadence_cold_days ?? 90;
+
   const simulatedDate = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
   const daysSince = differenceInDays(simulatedDate, new Date(contact.last_contacted_at));
 
   let targetDays: number;
   switch (contact.relationship_tier) {
-    case 'priority': targetDays = settings.cadence_priority_days; break;
-    case 'warm': targetDays = settings.cadence_warm_days; break;
-    default: targetDays = settings.cadence_cold_days;
+    case 'priority': targetDays = priorityDays; break;
+    case 'warm': targetDays = warmDays; break;
+    default: targetDays = coldDays;
   }
 
   if (daysSince > targetDays * 1.5) {
@@ -222,19 +235,23 @@ export function getSuggestedReason(
  */
 export function isContactOverdue(
   contact: Contact,
-  settings: Pick<UserSettings, 'cadence_priority_days' | 'cadence_warm_days' | 'cadence_cold_days'>,
+  settings?: Partial<Pick<UserSettings, 'cadence_priority_days' | 'cadence_warm_days' | 'cadence_cold_days'>> | null,
   offsetDays: number = 0
 ): boolean {
   if (!contact.last_contacted_at) return true;
 
   const simulatedDate = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
   const daysSince = differenceInDays(simulatedDate, new Date(contact.last_contacted_at));
-  let targetDays: number;
+  
+  const priorityDays = settings?.cadence_priority_days ?? 7;
+  const warmDays = settings?.cadence_warm_days ?? 30;
+  const coldDays = settings?.cadence_cold_days ?? 90;
 
+  let targetDays: number;
   switch (contact.relationship_tier) {
-    case 'priority': targetDays = settings.cadence_priority_days; break;
-    case 'warm': targetDays = settings.cadence_warm_days; break;
-    default: targetDays = settings.cadence_cold_days;
+    case 'priority': targetDays = priorityDays; break;
+    case 'warm': targetDays = warmDays; break;
+    default: targetDays = coldDays;
   }
 
   return daysSince >= targetDays;
