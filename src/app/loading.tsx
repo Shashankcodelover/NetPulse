@@ -18,7 +18,7 @@ export default function Loading() {
           />
         </div>
         <motion.p 
-          className="text-sm font-medium text-gray-500 dark:text-gray-400"
+          className="text-sm font-medium text-gray-500 text-gray-400"
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{
             duration: 1.5,
