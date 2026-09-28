@@ -51,39 +51,7 @@
   color-scheme: light;
 }
 
-.dark {
-  --np-bg-primary: #0F0F10;
-  --np-bg-secondary: rgba(255, 255, 255, 0.4);
-  --np-bg-tertiary: rgba(243, 244, 246, 0.4);
-  --np-bg-sidebar: rgba(255, 255, 255, 0.5);
-  --np-bg-card: rgba(255, 255, 255, 0.6);
-  --np-bg-hover: rgba(243, 244, 246, 0.6);
-  --np-bg-active: #1E1B4B;
 
-  --np-text-primary: #EDEDED;
-  --np-text-secondary: #9CA3AF;
-  --np-text-tertiary: #4B5563; /* contrast fix */
-  --np-text-inverse: #0F0F10;
-
-  --np-border: #27272A;
-  --np-border-light: #1E1E22;
-
-  --np-accent: #6366F1;
-  --np-accent-hover: #818CF8;
-  --np-accent-light: #1E1B4B;
-  --np-accent-muted: #312E81;
-
-  --np-success-light: #064E3B;
-  --np-warning-light: #78350F;
-  --np-danger-light: #7F1D1D;
-  --np-info-light: #1E3A5F;
-
-  --np-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.2);
-  --np-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
-  --np-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
-
-  color-scheme: dark;
-}
 
 /* --- Tailwind Theme Integration --- */
 @theme inline {
