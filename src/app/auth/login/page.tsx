@@ -66,55 +66,59 @@ export default function LoginPage() {
     <div style={{
       minHeight: '100vh',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 24,
+      flexDirection: 'column',
       background: 'var(--np-bg-primary)',
+      color: 'var(--np-text-primary)'
     }}>
-      <div className="animate-fade-in-up" style={{ width: '100%', maxWidth: 420 }}>
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+      <header style={{ padding: '24px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8
-          }}>
-            <div style={{
-              width: 12, height: 12, borderRadius: '50%',
-              background: 'var(--np-accent)', boxShadow: '0 0 12px var(--np-accent)',
-            }} />
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
-              NetPulse
-            </h1>
-          </div>
-          <p style={{ color: 'var(--np-text-secondary)', fontSize: '0.9375rem' }}>
-            Never let a good connection go cold
-          </p>
+            width: 12, height: 12, borderRadius: '50%',
+            background: 'var(--np-accent)', boxShadow: '0 0 12px var(--np-accent)'
+          }} />
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.03em' }}>NetPulse</h1>
         </div>
-
-        {/* Login Card */}
-        <div className="card">
-          <div className="card-body" style={{ padding: 32 }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 24 }}>
-              Welcome back
+      </header>
+      
+      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
+        <div style={{ maxWidth: '1200px', width: '100%', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '48px', justifyContent: 'center' }}>
+          
+          <div className="animate-fade-in-up" style={{ flex: '1 1 500px', maxWidth: '600px' }}>
+            <h2 style={{ fontSize: '3.5rem', fontWeight: 800, lineHeight: 1.1, marginBottom: 24, letterSpacing: '-0.02em' }}>
+              Never let a good connection go cold.
             </h2>
+            <p style={{ fontSize: '1.25rem', color: 'var(--np-text-secondary)', lineHeight: 1.6, marginBottom: 32 }}>
+              NetPulse is an intelligent relationship CRM designed to help professionals maintain and nurture their network. 
+              By calculating deterministic decay algorithms and prioritizing outreach, it ensures you stay connected with the people who matter most.
+            </p>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <button
+                type="button"
+                onClick={handleInstantDemoLogin}
+                className="btn btn-primary"
+                style={{ padding: '16px 32px', fontSize: '1rem', fontWeight: 700, borderRadius: '12px' }}
+              >
+                <Sparkles size={18} style={{ marginRight: 8 }} /> Try Demo Mode
+              </button>
+            </div>
+          </div>
 
+          <div className="animate-fade-in-up card" style={{ flex: '1 1 400px', maxWidth: '440px', padding: 32 }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 24 }}>Welcome back</h3>
             {error && (
               <div style={{
                 padding: '10px 14px', borderRadius: 'var(--np-radius-sm)',
                 background: 'var(--np-danger-light)', color: 'var(--np-danger)',
-                fontSize: '0.875rem', marginBottom: 20,
+                fontSize: '0.875rem', marginBottom: 20
               }}>
                 {error}
               </div>
             )}
-
             <form onSubmit={handleLogin}>
-              <div className="form-group">
-                <label className="form-label">Email</label>
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label" style={{ display: 'block', marginBottom: 8, fontSize: '0.875rem', fontWeight: 600 }}>Email</label>
                 <div style={{ position: 'relative' }}>
-                  <Mail size={16} style={{
-                    position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-                    color: 'var(--np-text-tertiary)',
-                  }} />
+                  <Mail size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--np-text-tertiary)' }} />
                   <input
                     type="email"
                     className="form-input"
@@ -122,18 +126,14 @@ export default function LoginPage() {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
-                    style={{ paddingLeft: 38 }}
+                    style={{ paddingLeft: 38, width: '100%', height: 44, borderRadius: 8, border: '1px solid var(--np-border)', background: 'var(--np-bg-secondary)', color: 'var(--np-text-primary)' }}
                   />
                 </div>
               </div>
-
-              <div className="form-group">
-                <label className="form-label">Password</label>
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label" style={{ display: 'block', marginBottom: 8, fontSize: '0.875rem', fontWeight: 600 }}>Password</label>
                 <div style={{ position: 'relative' }}>
-                  <Lock size={16} style={{
-                    position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-                    color: 'var(--np-text-tertiary)',
-                  }} />
+                  <Lock size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--np-text-tertiary)' }} />
                   <input
                     type="password"
                     className="form-input"
@@ -141,238 +141,29 @@ export default function LoginPage() {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required
-                    style={{ paddingLeft: 38 }}
+                    style={{ paddingLeft: 38, width: '100%', height: 44, borderRadius: 8, border: '1px solid var(--np-border)', background: 'var(--np-bg-secondary)', color: 'var(--np-text-primary)' }}
                   />
                 </div>
               </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowForgot(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--np-accent)',
-                    fontSize: '0.8125rem',
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  Forgot password?
-                </button>
-              </div>
-
               <button
                 type="submit"
-                className="btn btn-primary btn-lg"
+                className="btn btn-secondary"
                 disabled={loading}
-                style={{ width: '100%', marginTop: 12 }}
+                style={{ width: '100%', marginTop: 12, height: 44, borderRadius: 8, fontWeight: 700 }}
               >
-                {loading ? <Loader2 size={18} className="animate-spin" /> : null}
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? <Loader2 size={18} className="animate-spin" style={{ marginRight: 8 }} /> : null}
+                {loading ? 'Signing in...' : 'Log In'}
               </button>
             </form>
-
-            {/* 2-User Role-Play Identity Quick Login */}
-            <div style={{ marginTop: 20 }}>
-              <div style={{
-                fontSize: '0.72rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                fontWeight: 800,
-                color: 'var(--np-text-tertiary)',
-                marginBottom: 10,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
-                <span>Quick Demo Access (1-Click)</span>
-                <span style={{ color: 'var(--np-accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Sparkles size={11} /> Real LinkedIn Network Active
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* Primary Persona: Shashank J (Real LinkedIn Data) */}
-                <button
-                  type="button"
-                  onClick={() => handlePersonaLogin('user-shashank', '/')}
-                  className="btn btn-secondary"
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(236, 72, 153, 0.12) 100%)',
-                    border: '1.5px solid rgba(99, 102, 241, 0.5)',
-                    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    position: 'relative',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = '#ec4899';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.5)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <div style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #6366f1, #ec4899)',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 800,
-                    fontSize: '0.9rem',
-                    flexShrink: 0,
-                    boxShadow: '0 2px 8px rgba(236, 72, 153, 0.4)',
-                  }}>
-                    SJ
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--np-text-primary)' }}>
-                        Shashank J
-                      </div>
-                      <span style={{
-                        fontSize: '0.65rem',
-                        fontWeight: 700,
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        background: 'rgba(99, 102, 241, 0.2)',
-                        color: 'var(--np-accent)',
-                      }}>
-                        PRIMARY (1.9K CONNECTIONS)
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--np-text-secondary)' }}>
-                      Full-Stack Engineer &amp; AI Builder • JSSSTU / SJCE
-                    </div>
-                  </div>
-                  <Zap size={18} style={{ color: '#ec4899' }} />
-                </button>
-
-                {/* User 1: Alex Mercer */}
-                <button
-                  type="button"
-                  onClick={() => handlePersonaLogin('user-alex')}
-                  className="btn btn-secondary"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%)',
-                    border: '1px solid rgba(99, 102, 241, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = '#6366f1'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)'}
-                >
-                  <div style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #06b6d4, #6366f1)',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 800,
-                    fontSize: '0.85rem',
-                    flexShrink: 0,
-                  }}>
-                    AM
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--np-text-primary)' }}>
-                      Alex Mercer (Venture Partner)
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--np-text-secondary)' }}>
-                      Apex DeepTech Ventures • AI Infra &amp; Swarms
-                    </div>
-                  </div>
-                  <Orbit size={16} style={{ color: '#6366f1' }} />
-                </button>
-
-                {/* User 2: Dr. Elena Rostova */}
-                <button
-                  type="button"
-                  onClick={() => handlePersonaLogin('user-elena')}
-                  className="btn btn-secondary"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = '#10b981'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.3)'}
-                >
-                  <div style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #10b981, #3b82f6)',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 800,
-                    fontSize: '0.85rem',
-                    flexShrink: 0,
-                  }}>
-                    ER
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--np-text-primary)' }}>
-                      Dr. Elena Rostova (Quantum Architect)
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--np-text-secondary)' }}>
-                      QuantumFoundry • Quantum ML &amp; Cryptography
-                    </div>
-                  </div>
-                  <Atom size={16} style={{ color: '#10b981' }} />
-                </button>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0',
-              color: 'var(--np-text-tertiary)', fontSize: '0.8125rem',
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0', color: 'var(--np-text-tertiary)', fontSize: '0.8125rem' }}>
               <div style={{ flex: 1, height: 1, background: 'var(--np-border)' }} />
               or
               <div style={{ flex: 1, height: 1, background: 'var(--np-border)' }} />
             </div>
-
-            {/* Google OAuth */}
             <button
               onClick={handleGoogleLogin}
-              className="btn btn-secondary btn-lg"
-              style={{ width: '100%' }}
+              className="btn"
+              style={{ width: '100%', height: 44, borderRadius: 8, background: 'white', color: '#333', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 600 }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -382,11 +173,7 @@ export default function LoginPage() {
               </svg>
               Continue with Google
             </button>
-
-            <p style={{
-              textAlign: 'center', marginTop: 24,
-              color: 'var(--np-text-secondary)', fontSize: '0.875rem',
-            }}>
+            <p style={{ textAlign: 'center', marginTop: 24, color: 'var(--np-text-secondary)', fontSize: '0.875rem' }}>
               Don&apos;t have an account?{' '}
               <Link href="/auth/signup" style={{ color: 'var(--np-accent)', fontWeight: 500, textDecoration: 'none' }}>
                 Sign up
@@ -394,64 +181,7 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
-
-        {/* Forgot Password Modal */}
-        {showForgot && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000,
-              padding: 16,
-            }}
-          >
-            <div
-              className="card animate-fade-in-up"
-              style={{ width: '100%', maxWidth: 400, padding: 24 }}
-            >
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: 8 }}>
-                Reset Your Password
-              </h3>
-              <p style={{ fontSize: '0.875rem', color: 'var(--np-text-secondary)', marginBottom: 20 }}>
-                Enter your account email to receive an instant recovery magic link.
-              </p>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="you@example.com"
-                value={forgotEmail}
-                onChange={e => setForgotEmail(e.target.value)}
-                style={{ marginBottom: 16 }}
-              />
-              {forgotSent ? (
-                <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontSize: '0.85rem', marginBottom: 16 }}>
-                  ✓ Recovery magic link dispatched! Check your inbox.
-                </div>
-              ) : null}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() => { setShowForgot(false); setForgotSent(false); }}
-                  className="btn btn-secondary btn-sm"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForgotSent(true)}
-                  className="btn btn-primary btn-sm"
-                >
-                  Send Recovery Link
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      </main>
 
       <style jsx>{`
         @keyframes spin {
